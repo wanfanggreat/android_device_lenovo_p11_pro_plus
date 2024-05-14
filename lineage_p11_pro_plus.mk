@@ -14,11 +14,11 @@ $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
 # Inherit from p11_pro_plus device
 $(call inherit-product, device/lenovo/p11_pro_plus/device.mk)
 
-PRODUCT_DEVICE := p11_pro_plus
 PRODUCT_NAME := lineage_p11_pro_plus
-PRODUCT_BRAND := qti
-PRODUCT_MODEL := p11_pro_plus system image for arm64
-PRODUCT_MANUFACTURER := lenovo
+PRODUCT_DEVICE := p11_pro_plus
+PRODUCT_BRAND := Lenovo
+PRODUCT_MODEL := Lenovo TB-J716F
+PRODUCT_MANUFACTURER := LENOVO
 
 PRODUCT_GMS_CLIENTID_BASE := android-lenovo
 
