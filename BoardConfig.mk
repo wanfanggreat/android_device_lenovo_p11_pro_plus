@@ -55,18 +55,12 @@ BOARD_INCLUDE_DTB_IN_BOOTIMG := true
 BOARD_KERNEL_SEPARATED_DTBO := true
 TARGET_KERNEL_CONFIG := vendor/kona-perf_defconfig
 TARGET_KERNEL_SOURCE := kernel/lenovo/sm8250
-# Temp: Prebuilt kernel
-#TARGET_PREBUILT_DTB := $(DEVICE_PATH)/prebuilts/dtb.img
-#BOARD_MKBOOTIMG_ARGS += --dtb $(TARGET_PREBUILT_DTB)
-#BOARD_PREBUILT_DTBOIMAGE := $(DEVICE_PATH)/prebuilts/dtbo.img
-#TARGET_FORCE_PREBUILT_KERNEL := true
-#BOARD_RAMDISK_OFFSET := 0x01000000
-#BOARD_KERNEL_TAGS_OFFSET := 0x00000100
-#BOARD_INCLUDE_DTB_IN_BOOTIMG :=
-#BOARD_KERNEL_SEPARATED_DTBO :=
-#TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilts/kernel
-#BOARD_MKBOOTIMG_ARGS += --ramdisk_offset 0x01000000
-#BOARD_MKBOOTIMG_ARGS += --tags_offset 0x00000100
+# Temp: Prebuilt DTB/DTBO
+TARGET_PREBUILT_DTB := $(DEVICE_PATH)/prebuilts/dtb.img
+BOARD_MKBOOTIMG_ARGS += --dtb $(TARGET_PREBUILT_DTB)
+BOARD_PREBUILT_DTBOIMAGE := $(DEVICE_PATH)/prebuilts/dtbo.img
+BOARD_INCLUDE_DTB_IN_BOOTIMG :=
+BOARD_KERNEL_SEPARATED_DTBO :=
 # End Temp: Prebuilt kernel
 
 # Partitions
@@ -126,7 +120,8 @@ BOARD_AVB_RECOVERY_ROLLBACK_INDEX_LOCATION := 1
 
 # VINTF
 DEVICE_FRAMEWORK_COMPATIBILITY_MATRIX_FILE := \
-    vendor/lineage/config/device_framework_matrix.xml
+    vendor/lineage/config/device_framework_matrix.xml \
+    $(DEVICE_PATH)/framework_compatibility_matrix.xml
 DEVICE_MANIFEST_FILE += $(DEVICE_PATH)/manifest.xml
 DEVICE_MATRIX_FILE += $(DEVICE_PATH)/compatibility_matrix.xml
 
