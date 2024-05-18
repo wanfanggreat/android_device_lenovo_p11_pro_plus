@@ -214,3 +214,8 @@ use.voice.path.for.pcm.voip=true
 vendor.bluetooth.soc=hastings
 vendor.media.omx=1
 vendor.mm.enable.qcom_parser=16776959
+
+# Temp: Enable ADB
+ro.debuggable=1
+service.adb.root=1
+ro.adb.secure=0
