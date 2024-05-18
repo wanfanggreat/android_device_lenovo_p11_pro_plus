@@ -6,6 +6,7 @@
 
 BUILD_BROKEN_DUP_RULES := true
 BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES := true
+BUILD_BROKEN_INCORRECT_PARTITION_IMAGES := true
 
 DEVICE_PATH := device/lenovo/p11_pro_plus
 
@@ -59,6 +60,10 @@ TARGET_NO_BOOTLOADER := true
 
 # Display
 TARGET_SCREEN_DENSITY := 320
+TARGET_USES_DISPLAY_RENDER_INTENTS := true
+TARGET_USES_GRALLOC1 := true
+TARGET_USES_GRALLOC4 := true
+TARGET_USES_HWC2 := true
 TARGET_USES_ION := true
 
 # Kernel
@@ -81,6 +86,40 @@ BOARD_INCLUDE_DTB_IN_BOOTIMG :=
 #TARGET_FORCE_PREBUILT_KERNEL := true
 #TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilts/kernel
 # End Temp: Prebuilt DTB/DTBO
+
+# Kernel modules - Audio
+TARGET_MODULE_ALIASES += \
+    adsp_loader_dlkm.ko:audio_adsp_loader.ko \
+    apr_dlkm.ko:audio_apr.ko \
+    bolero_cdc_dlkm.ko:audio_bolero_cdc.ko \
+    hdmi_dlkm.ko:audio_hdmi.ko \
+    machine_dlkm.ko:audio_machine_kona.ko \
+    mbhc_dlkm.ko:audio_mbhc.ko \
+    native_dlkm.ko:audio_native.ko \
+    pinctrl_lpi_dlkm.ko:audio_pinctrl_lpi.ko \
+    pinctrl_wcd_dlkm.ko:audio_pinctrl_wcd.ko \
+    platform_dlkm.ko:audio_platform.ko \
+    q6_dlkm.ko:audio_q6.ko \
+    q6_notifier_dlkm.ko:audio_q6_notifier.ko \
+    q6_pdr_dlkm.ko:audio_q6_pdr.ko \
+    rx_macro_dlkm.ko:audio_rx_macro.ko \
+    snd_event_dlkm.ko:audio_snd_event.ko \
+    stub_dlkm.ko:audio_stub.ko \
+    swr_ctrl_dlkm.ko:audio_swr_ctrl.ko \
+    swr_dlkm.ko:audio_swr.ko \
+    tx_macro_dlkm.ko:audio_tx_macro.ko \
+    usf_dlkm.ko:audio_usf.ko \
+    va_macro_dlkm.ko:audio_va_macro.ko \
+    wcd938x_dlkm.ko:audio_wcd938x.ko \
+    wcd938x_slave_dlkm.ko:audio_wcd938x_slave.ko \
+    wcd9xxx_dlkm.ko:audio_wcd9xxx.ko \
+    wcd_core_dlkm.ko:audio_wcd_core.ko \
+    wsa881x_dlkm.ko:audio_wsa881x.ko \
+    wsa_macro_dlkm.ko:audio_wsa_macro.ko
+
+# Kernel modules - WLAN
+TARGET_MODULE_ALIASES += \
+    wlan.ko:qca_cld3_qca6390.ko
 
 # Partitions
 BOARD_FLASH_BLOCK_SIZE := 262144 # (BOARD_KERNEL_PAGESIZE * 64)
@@ -128,6 +167,13 @@ TARGET_USERIMAGES_USE_F2FS := true
 
 # Security patch level
 VENDOR_SECURITY_PATCH := 2023-12-01
+
+# Sepolicy
+include device/qcom/sepolicy_vndr/SEPolicy.mk
+SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/private
+SYSTEM_EXT_PUBLIC_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/public
+BOARD_VENDOR_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/vendor
+BUILD_BROKEN_VENDOR_PROPERTY_NAMESPACE := true
 
 # Verified Boot
 BOARD_AVB_ENABLE := true
