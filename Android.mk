@@ -6,8 +6,9 @@
 
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(TARGET_DEVICE),p11_pro_plus)
-include $(call all-subdir-makefiles,$(LOCAL_PATH))
+ifneq ($(filter p11_pro_plus,$(TARGET_DEVICE)),)
+
+include $(call all-makefiles-under,$(LOCAL_PATH))
 
 include $(CLEAR_VARS)
 

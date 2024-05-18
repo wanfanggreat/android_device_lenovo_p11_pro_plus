@@ -124,10 +124,6 @@ on early-boot
 
 #/***PEALPLUS-474 USB can't Identify  huangrui 20210318 end ***/
 
-# Temp: Enable ADB
-on property:ro.boot.verifiedbootstate=orange
-    setprop persist.sys.usb.config adb
-
 on boot
     start logger
     chown bluetooth bluetooth /sys/module/bluetooth_power/parameters/power
