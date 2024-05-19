@@ -114,8 +114,8 @@ on post-fs-data
     # Enable WLAN cold boot calibration
     write /sys/devices/platform/soc/b0000000.qcom,cnss-qca6390/fs_ready 1
 
-on early-boot
-    start vendor.sensors
+#on early-boot
+#    start vendor.sensors
 
 on boot
     write /dev/cpuset/audio-app/cpus 1-2
