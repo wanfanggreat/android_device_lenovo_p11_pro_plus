@@ -1,4 +1,4 @@
-# Android device tree for qti qssi system image for arm64 (qssi)
+# Android device tree for Lenovo Xiaoxin Pad Pro 2021 (TB-J716F)
 
 ```
 #
