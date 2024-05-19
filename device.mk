@@ -187,7 +187,6 @@ PRODUCT_PACKAGES += \
     libavservices_minijail \
     libavservices_minijail.vendor \
     libavservices_minijail_vendor \
-    libmm-omxcore \
     libc2dcolorconvert \
     libcodec2_hidl@1.0.vendor \
     libcodec2_hidl@1.1.vendor \
@@ -210,12 +209,17 @@ PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_video.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_google_video.xml \
     frameworks/av/media/libstagefright/data/media_codecs_google_video_le.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_google_video_le.xml
 
+# Modules
+# PRODUCT_COPY_FILES += \
+#     $(call find-copy-subdir-files,*,$(LOCAL_PATH)/,$(TARGET_COPY_OUT_VENDOR)/lib/modules)
+
 # Neural networks
 PRODUCT_PACKAGES += \
     android.hardware.neuralnetworks@1.3.vendor
 
 # OMX
 PRODUCT_PACKAGES += \
+    libmm-omxcore \
     libOmxAacEnc \
     libOmxAmrEnc \
     libOmxCore \
