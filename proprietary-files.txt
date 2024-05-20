@@ -2007,7 +2007,6 @@ vendor/etc/vintf/manifest/manifest.xml
 vendor/etc/vintf/manifest/power.xml
 vendor/etc/cacert_location.pem
 vendor/etc/excluded-input-devices.xml
-vendor/etc/fstab.qcom
 vendor/etc/ftm_test_config
 vendor/etc/ftm_test_config_kona-qrd-snd-card
 vendor/etc/gnss_antenna_info.conf
@@ -2328,4 +2327,3 @@ vendor/lib/vendor.lenovo.hardware.display@1.0.so
 vendor/lib/vendor.lenovo.hardware.misc@1.0.so
 vendor/lib/vendor.lenovo.hardware.performance@1.0.so
 vendor/lib/vendor.lenovo.hardware.touchscreen@1.0.so
-vendor/ueventd.rc
