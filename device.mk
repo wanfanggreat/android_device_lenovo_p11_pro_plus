@@ -372,6 +372,18 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/wifi/WCNSS_qcom_cfg_qca6390.ini:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/qca6390/WCNSS_qcom_cfg.ini \
     $(LOCAL_PATH)/wifi/wpa_supplicant_overlay.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant_overlay.conf
 
+# 基础 WCNSS 配置（不带 chip 名的路径）。
+# 本设备内核把 qcacld 驱动**编进内核**（defconfig: CONFIG_QCA_CLD_WLAN=y，
+# CONFIG_QCA_CLD_WLAN_PROFILE="qca6390"），此时驱动用的是不带 chip 名的
+# 基础路径 wlan/qca_cld/WCNSS_qcom_cfg.ini（见编译产物 Image 的字符串；
+# 只有 .ko 形式的驱动才走 DYNAMIC_SINGLE_CHIP 的 <chip>/ 子目录路径）。
+# 而 device/lenovo/p11_pro_plus/Android.mk 的 WIFI_FIRMWARE_SYMLINKS 规则
+# 正是把这个基础路径作为符号链接目标，所以 /vendor/etc/wifi/WCNSS_qcom_cfg.ini
+# 必须存在。原厂固件里该文件缺失（其 zui 走 .ko 驱动），我们也未提供，
+# 会导致 WLAN 读不到配置。qca6390 与内核 profile 一致，故以其内容填充。
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/wifi/WCNSS_qcom_cfg_qca6390.ini:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/WCNSS_qcom_cfg.ini
+
 # WiFi Display
 PRODUCT_PACKAGES += \
     libavservices_minijail \
