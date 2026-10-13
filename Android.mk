@@ -153,12 +153,24 @@ $(RFS_MSM_SLPI_SYMLINKS): $(LOCAL_INSTALLED_MODULE)
 
 ALL_DEFAULT_INSTALLED_MODULES += $(RFS_APQ_GNSS_SYMLINKS) $(RFS_MDM_ADSP_SYMLINKS) $(RFS_MDM_CDSP_SYMLINKS) $(RFS_MDM_MPSS_SYMLINKS) $(RFS_MDM_SLPI_SYMLINKS) $(RFS_MDM_TN_SYMLINKS) $(RFS_MSM_ADSP_SYMLINKS) $(RFS_MSM_CDSP_SYMLINKS) $(RFS_MSM_MPSS_SYMLINKS) $(RFS_MSM_SLPI_SYMLINKS)
 
+# 固件里 qca6390/ 与 qca6490/ 子目录各有一对同名符号链接，同样保留：
+# 内核 qcacld 在 DYNAMIC_SINGLE_CHIP 模式下按
+#   wlan/qca_cld/<chip>/WCNSS_qcom_cfg.ini
+#   wlan/qca_cld/<chip>/wlan_mac.bin
+# 查找配置（见 kernel/lenovo/sm8250/drivers/staging/qcacld-3.0/core/hdd/inc/
+# wlan_hdd_misc.h 的 WLAN_INI_FILE / WLAN_MAC_FILE，PREFIX=DYNAMIC_SINGLE_CHIP/），
+# 而本机 WLAN 驱动是 kona 第三代（prebuilts/modules/qca_cld3_qca6390.ko、
+# qca_cld3_qca6490.ko），故这两个子目录是运行时真正被读取的路径。
 WIFI_FIRMWARE_SYMLINKS := $(TARGET_OUT_VENDOR)/firmware/wlan/qca_cld
 $(WIFI_FIRMWARE_SYMLINKS): $(LOCAL_INSTALLED_MODULE)
 	@echo "Creating wifi firmware symlinks: $@"
-	@mkdir -p $@
+	@mkdir -p $@/qca6390 $@/qca6490
 	$(hide) ln -sf /vendor/etc/wifi/WCNSS_qcom_cfg.ini $@/WCNSS_qcom_cfg.ini
 	$(hide) ln -sf /mnt/vendor/persist/wlan_mac.bin $@/wlan_mac.bin
+	$(hide) ln -sf /vendor/etc/wifi/qca6390/WCNSS_qcom_cfg.ini $@/qca6390/WCNSS_qcom_cfg.ini
+	$(hide) ln -sf /mnt/vendor/persist/qca6390/wlan_mac.bin $@/qca6390/wlan_mac.bin
+	$(hide) ln -sf /vendor/etc/wifi/qca6490/WCNSS_qcom_cfg.ini $@/qca6490/WCNSS_qcom_cfg.ini
+	$(hide) ln -sf /mnt/vendor/persist/qca6490/wlan_mac.bin $@/qca6490/wlan_mac.bin
 
 ALL_DEFAULT_INSTALLED_MODULES += $(WIFI_FIRMWARE_SYMLINKS)
 

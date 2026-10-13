@@ -1711,11 +1711,20 @@ vendor/etc/wifi/wpa_supplicant_overlay.conf
 
 # Wi-Fi firmware
 vendor/firmware/wigig/wigig.ini
-vendor/firmware/wlan/qca_cld/qca6390/WCNSS_qcom_cfg.ini
-vendor/firmware/wlan/qca_cld/qca6390/wlan_mac.bin
-vendor/firmware/wlan/qca_cld/qca6490/WCNSS_qcom_cfg.ini
-vendor/firmware/wlan/qca_cld/qca6490/wlan_mac.bin
-vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini
+# 注意: 以下 5 条 wlan 固件路径在固件里是**指向别处的符号链接**
+# (如 qca6390/WCNSS_qcom_cfg.ini -> /vendor/etc/wifi/qca6390/WCNSS_qcom_cfg.ini)，
+# 目标在宿主机上不存在，提取必然失败，却在 vendor.mk 里留下 source 缺失的
+# PRODUCT_COPY_FILES，导致 vendorimage/bacon 报
+#   ninja: error: '...proprietary/vendor/firmware/...' missing and no known rule
+# 上游用 adb pull 提取时符号链接会被解引用成真文件，故上游不报错。
+# 这里改为在 device/lenovo/p11_pro_plus/Android.mk 中用 mk 规则建符号链接，
+# 与固件原状一致（运行时指向 /vendor/etc/wifi/... 与 /mnt/vendor/persist/...）。
+# 如需重新加入，请确认提取源能解析这些链接。
+# vendor/firmware/wlan/qca_cld/qca6390/WCNSS_qcom_cfg.ini
+# vendor/firmware/wlan/qca_cld/qca6390/wlan_mac.bin
+# vendor/firmware/wlan/qca_cld/qca6490/WCNSS_qcom_cfg.ini
+# vendor/firmware/wlan/qca_cld/qca6490/wlan_mac.bin
+# vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini
 
 # Wi-Fi Display
 -framework/WfdCommon.jar
@@ -1823,7 +1832,9 @@ vendor/lib64/vendor.qti.hardware.wifidisplaysession@1.0.so
 
 # Miscellaneous
 vendor/app/CACertService/CACertService.apk
-vendor/app/CneApp/lib/arm64/libvndfwk_detect_jni.qti.so
+# vendor/app/CneApp/lib/arm64/libvndfwk_detect_jni.qti.so
+#   ↑ 固件里是指向 /vendor/lib64/libvndfwk_detect_jni.qti.so 的符号链接，
+#     提取源无法解析 → 见 device/lenovo/p11_pro_plus/Android.mk 的 CNE 符号链接规则
 vendor/app/ConnectionSecurityService/ConnectionSecurityService.apk
 vendor/app/QFingerprintService/QFingerprintService.apk
 vendor/app/TrustZoneAccessService/TrustZoneAccessService.apk
@@ -2034,7 +2045,9 @@ vendor/firmware/spk3_fast_switch3.txt
 vendor/firmware/spk4_fast_switch1.txt
 vendor/firmware/spk4_fast_switch2.txt
 vendor/firmware/spk4_fast_switch3.txt
-vendor/firmware/wlanmdsp.otaupdate
+# vendor/firmware/wlanmdsp.otaupdate
+#   ↑ 固件里是指向 /data/vendor/firmware/wlanmdsp.mbn 的符号链接（该 mbn 运行时
+#     才由设备生成）。提取源无法解析，且此路径运行时本就可能不存在，故不打包。
 vendor/lib64/btaudio_offload_if.so
 vendor/lib64/carwatchdog_aidl_interface-V2-ndk_platform.so
 vendor/lib64/ftm_fm_lib.so
