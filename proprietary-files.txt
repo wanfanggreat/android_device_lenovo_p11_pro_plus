@@ -1683,7 +1683,18 @@ vendor/lib64/libkeystore-wifi-hidl.so
 vendor/lib64/libwapi_cert.so
 vendor/lib64/libwifi-hal-ctrl.so
 vendor/lib64/libwifi-hal-qcom.so
-vendor/lib64/libwifi-hal.so
+# vendor/lib64/libwifi-hal.so
+#   ↑ 不用原厂 blob。原厂那份是给 HIDL 服务 android.hardware.wifi@1.0-service 配的，
+#     vendor 实现留空（wifi_get_driver_version 仅 8 字节空桩）。我们用的是 AIDL 服务
+#     android.hardware.wifi-service，需要 libwifi-hal.so 内含 qcwcn 实现。
+#     实测（readelf -sW 符号大小）:
+#       函数                       原厂 blob   源码编译版
+#       wifi_get_driver_version       8 B        16 B
+#       wifi_reset_passpoint_list    44 B        72 B
+#     用 blob 覆盖会导致 WifiChip::configureChip -> getDriverVersion 调用空桩，
+#     在 wifi_reset_passpoint_list 处 SIGSEGV（fault addr 0x102），wifi HAL 反复崩溃、
+#     WiFi 打不开。移除本行即让 frameworks/opt/net/wifi/libwifi_hal 的编译产物进镜像，
+#     其 vendor 实现由 board_wlan_device=qcwcn 注入（BoardConfig.mk:196）。
 vendor/lib64/vendor.qti.hardware.fstman@1.0.so
 vendor/lib64/vendor.qti.hardware.wifi.hostapd@1.0.so
 vendor/lib64/vendor.qti.hardware.wifi.hostapd@1.1.so
