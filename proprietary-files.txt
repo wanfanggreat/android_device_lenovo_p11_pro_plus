@@ -965,6 +965,7 @@ vendor/bin/slim_daemon
 vendor/bin/xtra-daemon
 vendor/bin/xtwifi-client
 vendor/bin/xtwifi-inet-agent
+vendor/lib/hw/android.hardware.gnss@2.1-impl-qti.so
 vendor/lib/hw/vendor.qti.gnss@4.0-impl.so
 vendor/lib/libasn1cper.so
 vendor/lib/libasn1crt.so
@@ -998,6 +999,7 @@ vendor/lib/vendor.qti.gnss@2.1.so
 vendor/lib/vendor.qti.gnss@3.0.so
 vendor/lib/vendor.qti.gnss@4.0-service.so
 vendor/lib/vendor.qti.gnss@4.0.so
+vendor/lib64/hw/android.hardware.gnss@2.1-impl-qti.so
 vendor/lib64/hw/vendor.qti.gnss@4.0-impl.so
 vendor/lib64/libasn1cper.so
 vendor/lib64/libasn1crt.so
@@ -1350,6 +1352,13 @@ vendor/lib/vendor.qti.qspmhal@1.0.so
 vendor/lib64/vendor.qti.qspmhal@1.0-impl.so
 vendor/lib64/vendor.qti.qspmhal@1.0.so
 
+# Qualcomm XML
+# libxml.so 是高通私有 XML 解析库，SONAME 就是 libxml.so（依赖 libdiag.so），
+# 与 AOSP 的 libxml2.so 是两个不同的库、不能互相替代（SONAME 不同）。
+# libconfigdb（Radio/IMS）与 libwqe 依赖它，缺库时 imsdatadaemon 崩溃循环。
+vendor/lib/libxml.so
+vendor/lib64/libxml.so
+
 # Radio
 system_ext/lib64/vendor.qti.hardware.embmssl@1.0.so
 system_ext/lib64/vendor.qti.hardware.embmssl@1.1.so
@@ -1582,6 +1591,18 @@ vendor/lib64/vendor.qti.imsrtpservice@3.0.so
 # Secure element (power manager)
 vendor/lib/vendor.qti.esepowermanager@1.0.so
 vendor/lib64/vendor.qti.esepowermanager@1.0.so
+
+# Sensors
+# libsensorslog / libsns_fastRPC_util: libcamxncs (相机) 与 libsns_* 桩的依赖，
+#   缺库时 camera provider 无法加载 camera.qcom.so;
+# libsensorndkbridge: slim_daemon (GNSS) 的依赖;
+# vendor.qti.hardware.sensorscalibrate@1.0: libFactoryHALCommon 的依赖。
+vendor/lib/libsensorslog.so
+vendor/lib/libsns_fastRPC_util.so
+vendor/lib64/libsensorndkbridge.so
+vendor/lib64/libsensorslog.so
+vendor/lib64/libsns_fastRPC_util.so
+vendor/lib64/vendor.qti.hardware.sensorscalibrate@1.0.so
 
 # Service tracker
 vendor/bin/hw/vendor.qti.hardware.servicetracker@1.2-service
@@ -1976,7 +1997,28 @@ vendor/etc/firmware/ifaata.mdt
 vendor/etc/gtx/Lenovo_P11_GT7385P_test_sensor_8.tporder
 vendor/etc/init/boringssl_self_test.rc
 vendor/etc/init/factorybsp_service.rc
-vendor/etc/init/factorybsp_service_qcom.rc
+# vendor/etc/init/factorybsp_service_qcom.rc
+#   ↑ 原厂产线测试 rc，本设备树不打包（会造成不可恢复的崩溃循环）。
+#     该文件定义了唯一一个非 oneshot 的工厂服务：
+#       service interfaces.factoryInterface@1.0-service /vendor/bin/hw/interfaces.factoryInterface@1.0-service
+#           class late_start
+#           seclabel u:r:factory_services:s0
+#     `factory_services` 这个 SELinux 域在本镜像里不存在（它来自原厂 vendor 分区的
+#     预编译 vendor_sepolicy.cil；AOSP/QCOM sepolicy 源码树里没有对应定义，本设备树
+#     sepolicy/ 目录也从未定义过它，实测 grep 命中数为 0）。init 的 setexeccon 因此失败：
+#       cannot setexeccon('u:r:factory_services:s0') for interfaces.factoryInterface@1.0-service: Invalid argument
+#     而该服务不是 oneshot，init 每 ~5s 重试一次，4 次后触发
+#       sys.init.updatable_crashing=1
+#     继而每 5s 拉起 /system/bin/flags_health_check UPDATABLE_CRASHING（重置 server
+#     configurable flags）并让 apexd 反复尝试回滚。这是当前唯一的崩溃循环服务。
+#     不补 SELinux 域的原因：即使补上，该 HAL 也**加载不了**——libFactoryHALCommon.so
+#     依赖 android::String8::toUpper()（符号 _ZN7android7String7toUpperEv），而该符号
+#     在 AOSP libutils、本版本 VNDK 以及设备上所有 libutils.so 中都不存在（只有原厂
+#     出厂镜像的 VNDK v30 才导出它）。实测在已有域下运行仍报：
+#       CANNOT LINK EXECUTABLE ... cannot locate symbol "_ZN7android7String87toUpperEv"
+#     服务照样秒退、照样算崩溃次数。产线工厂测试功能对用户设备无用，故直接不打包该 rc。
+#     注：proprietary-files.txt 里的 `-` 前缀表示“打包成 APK/JAR”，**不是**排除/禁用，
+#     所以这里只能用 `#` 注释掉（与本文件 hostapd.android.rc / wpa_supplicant 同样的做法）。
 vendor/etc/init/feature_enabler_client.rc
 # vendor/etc/init/hostapd.android.rc
 #   ↑ 同理：原厂这份声明 HIDL interface
@@ -2364,3 +2406,258 @@ vendor/lib/vendor.lenovo.hardware.display@1.0.so
 vendor/lib/vendor.lenovo.hardware.misc@1.0.so
 vendor/lib/vendor.lenovo.hardware.performance@1.0.so
 vendor/lib/vendor.lenovo.hardware.touchscreen@1.0.so
+
+# Audio (vendor configs, factory)
+# mixer_paths.xml / audio_platform_info*.xml 是 kona HAL 的“决定性”配置：
+#   audio.primary.kona.so 启动时依次找
+#     /vendor/etc/audio_platform_info_<snd_card>_<form_factor>.xml
+#     /vendor/etc/audio_platform_info_<snd_card>.xml
+#     /vendor/etc/audio_platform_info.xml
+#   以及 /vendor/etc/mixer_paths.xml；全缺则 HAL 拿不到 mixer 控件、开机无声卡。
+# 原厂 vendor 分区存在、本设备树此前未打包，故缺失。
+vendor/etc/audio_platform_info.xml
+vendor/etc/audio_platform_info_intcodec.xml
+vendor/etc/audio_platform_info_qrd.xml
+vendor/etc/a2dp_audio_policy_configuration.xml
+vendor/etc/audio_effects.conf
+vendor/etc/bluetooth_qti_audio_policy_configuration.xml
+vendor/etc/bluetooth_qti_hearing_aid_audio_policy_configuration.xml
+vendor/etc/mixer_paths.xml
+vendor/etc/sound_trigger_mixer_paths.xml
+vendor/etc/sound_trigger_mixer_paths_cdp.xml
+vendor/etc/sound_trigger_mixer_paths_qrd.xml
+# /vendor/etc/audio/audio_policy_configuration.xml 是“sku 感知”变体，当
+# ro.boot.product.vendor.sku 存在时 audioserver 走
+#   /vendor/etc/audio/sku_<sku>/ → 该目录；本机未设 sku 属性，故仅为回退/占位。
+vendor/etc/audio/audio_policy_configuration.xml
+vendor/etc/audio/sku_taro/audio_effects.xml
+
+# Audio ACDB calibration (原厂调音数据，libacdbloader 从 /vendor/etc/acdbdata 读取)
+vendor/etc/acdbdata/adsp_avs_config.acdb
+vendor/etc/acdbdata/MTP/MTP_Bluetooth_cal.acdb
+vendor/etc/acdbdata/MTP/MTP_General_cal.acdb
+vendor/etc/acdbdata/MTP/MTP_Global_cal.acdb
+vendor/etc/acdbdata/MTP/MTP_Handset_cal.acdb
+vendor/etc/acdbdata/MTP/MTP_Hdmi_cal.acdb
+vendor/etc/acdbdata/MTP/MTP_Headset_cal.acdb
+vendor/etc/acdbdata/MTP/MTP_Speaker_cal.acdb
+vendor/etc/acdbdata/MTP/MTP_workspaceFile.qwsp
+vendor/etc/acdbdata/QRD/QRD_Bluetooth_cal.acdb
+vendor/etc/acdbdata/QRD/QRD_General_cal.acdb
+vendor/etc/acdbdata/QRD/QRD_Global_cal.acdb
+vendor/etc/acdbdata/QRD/QRD_Handset_cal.acdb
+vendor/etc/acdbdata/QRD/QRD_Hdmi_cal.acdb
+vendor/etc/acdbdata/QRD/QRD_Headset_cal.acdb
+vendor/etc/acdbdata/QRD/QRD_Speaker_cal.acdb
+vendor/etc/acdbdata/QRD/QRD_workspaceFile.qwsp
+
+# Audio FX modules (QTI/Dolby 后处理；audio_effects.xml 已引用这些名字，
+#   libdlbvol/libswdap/libswgamedap/libswvqe 由 <library> 直接加载，
+#   libqcvirt/libqcreverb/libqcbassboost 由 libeffectproxy 按需加载)
+vendor/lib/soundfx/libdlbvol.so
+vendor/lib/soundfx/libqcbassboost.so
+vendor/lib/soundfx/libqcreverb.so
+vendor/lib/soundfx/libqcvirt.so
+vendor/lib/soundfx/libswdap.so
+vendor/lib/soundfx/libswgamedap.so
+vendor/lib/soundfx/libswvqe.so
+vendor/lib64/soundfx/libdlbvol.so
+vendor/lib64/soundfx/libqcbassboost.so
+vendor/lib64/soundfx/libqcreverb.so
+vendor/lib64/soundfx/libqcvirt.so
+vendor/lib64/soundfx/libswdap.so
+vendor/lib64/soundfx/libswgamedap.so
+vendor/lib64/soundfx/libswvqe.so
+
+# Sensors (Qualcomm SSC / SLPI stack)
+# sensors 完全不可用（dumpsys sensorservice → "No Sensors on the device"、
+#   devInitCheck : -19）的根因：整个高通 Sensor Core 栈从未打包进 vendor 镜像。
+# 连带症状：libcamxncs.so 等不到 sensors QMI 服务（QMI over QRTR），
+#   CamX NCS 模块 QmiWaitForService() 超时 → camxncs 连接失败 →
+#   camera provider 每约一分钟被 SIGPIPE 终止并重启，
+#   dumpsys media.camera 的设备数在 0 与 3 之间抖动。
+# 说明：libsensorslog.so / libsns_fastRPC_util.so（32/64）、
+#   libsensorndkbridge.so(64)、vendor.qti.hardware.sensorscalibrate@1.0.so(64)、
+#   libsns_device_mode_stub.so / libsns_low_lat_stream_stub.so /
+#   libsns_registry_skel.so / libssc_default_listener.so / libsnsapi.so（32/64）
+#   已在前面章节列入，此处不重复；本段只补漏。
+
+# SSC HAL 服务与工具二进制。
+# android.hardware.sensors@2.0-service.multihal 是 AOSP multihal 代理：
+#   它读 /vendor/etc/sensors/hals.conf（内容为 sensors.ssc.so），
+#   依次 dlopen ""、/vendor/lib64/hw/、/odm/lib64/hw/ 下的 sensors.ssc.so，
+#   再用 dlsym 取 sensorsHalGetSubHal 拿到 SubHal（详见 HalProxy.cpp:510）。
+# sscrpcd 是 sensor registry 配置守护进程，rc 里 class early_hal + shutdown critical；
+# sensors.qti 提供 sensors QMI（QRTR）服务端，即相机 NCS 所等待的那一个。
+vendor/bin/hw/android.hardware.sensors@2.0-service.multihal
+vendor/bin/hw/vendor.qti.hardware.sensorscalibrate@1.0-service
+vendor/bin/sensors.qti
+vendor/bin/sscrpcd
+
+# SSC 核心库（64 位）。sensors.ssc.so 是 SubHal 实现本体，
+# libssc.so 提供 QMI/QRTR 传输，libsnsapi.so 是 sensor API，
+# libsnsdiaglog.so 是 diag 日志，libsensorcal.so 供标定服务使用。
+vendor/lib64/android.hardware.sensors@2.0-ScopedWakelock.so
+vendor/lib64/libsensorcal.so
+vendor/lib64/libsnsdiaglog.so
+vendor/lib64/libssc.so
+vendor/lib64/sensors.ssc.so
+
+# SSC 核心库（32 位）。与 64 位成对提供，避免 32 位组件缺库。
+vendor/lib/android.hardware.sensors@2.0-ScopedWakelock.so
+vendor/lib/libsensorcal.so
+vendor/lib/libsensorndkbridge.so
+vendor/lib/libsnsdiaglog.so
+vendor/lib/libssc.so
+vendor/lib/sensors.ssc.so
+vendor/lib/vendor.qti.hardware.sensorscalibrate@1.0.so
+
+# sensorscalibrate HAL impl（动态库，按架构分别放在 hw/ 子目录）。
+vendor/lib/hw/vendor.qti.hardware.sensorscalibrate@1.0-impl.so
+vendor/lib64/hw/vendor.qti.hardware.sensorscalibrate@1.0-impl.so
+
+# SSC 在 ADSP 上的 skel 库（FastRPC 由 HLOS 侧 libsns_fastRPC_util.so 加载）。
+# _stub 版本已在前面章节列出；_skel 版本是真正在 ADSP 上执行的实现，
+# 缺它则 device_mode / low-latency stream 功能在 DSP 侧无法建立。
+vendor/lib/rfsa/adsp/libsns_device_mode_skel.so
+vendor/lib/rfsa/adsp/libsns_low_lat_stream_skel.so
+vendor/lib64/rfsa/adsp/libsns_device_mode_skel.so
+vendor/lib64/rfsa/adsp/libsns_low_lat_stream_skel.so
+
+# sensorscalibrate 的 Java 库声明（frameworks 侧 ISensorsCalibrate 权限）。
+vendor/etc/permissions/vendor-qti-hardware-sensorscalibrate.xml
+
+# /vendor/etc/sensors：SubHal 配置与 sensor registry 数据。
+# hals.conf 决定 multihal 加载哪个 SubHal（本机为 sensors.ssc.so）；
+# sns_reg_config 描述 registry 的持久化路径 /mnt/vendor/persist/sensors/registry/registry；
+# config/*.json 与 proto/*.proto 是各 sensor 的运行时配置与协议定义，
+# sns_reg_config 列出的 soc_id/hw_platform 等文件均取自 /sys/devices/soc0。
+# 这些文件在原厂 vendor 分区存在、本设备树此前未打包。
+vendor/etc/sensors/config/icm4x6xx_0.json
+vendor/etc/sensors/config/kona_amd_sw_disabled.json
+vendor/etc/sensors/config/kona_bu52053nvx_0.json
+vendor/etc/sensors/config/kona_default_sensors.json
+vendor/etc/sensors/config/kona_dynamic_sensors.json
+vendor/etc/sensors/config/kona_hdk_bmi26x_0.json
+vendor/etc/sensors/config/kona_icm4x6xx_0.json
+vendor/etc/sensors/config/kona_irq.json
+vendor/etc/sensors/config/kona_ltr308_0.json
+vendor/etc/sensors/config/kona_mmc56x3x_0.json
+vendor/etc/sensors/config/kona_power_0.json
+vendor/etc/sensors/config/kona_qrd_ak991x_0.json
+vendor/etc/sensors/config/kona_sx932x_0.json
+vendor/etc/sensors/config/kona_tmf8801_0.json
+vendor/etc/sensors/config/kona_tof_wake.json
+vendor/etc/sensors/config/kona_wake_gesture.json
+vendor/etc/sensors/config/sns_amd.json
+vendor/etc/sensors/config/sns_amd_sw_disabled.json
+vendor/etc/sensors/config/sns_amd_sw_enabled.json
+vendor/etc/sensors/config/sns_aont.json
+vendor/etc/sensors/config/sns_basic_gestures.json
+vendor/etc/sensors/config/sns_bring_to_ear.json
+vendor/etc/sensors/config/sns_ccd.json
+vendor/etc/sensors/config/sns_ccd_v2_walk.json
+vendor/etc/sensors/config/sns_ccd_v3_1_walk.json
+vendor/etc/sensors/config/sns_ccd_v3_walk.json
+vendor/etc/sensors/config/sns_cm.json
+vendor/etc/sensors/config/sns_dae.json
+vendor/etc/sensors/config/sns_device_orient.json
+vendor/etc/sensors/config/sns_diag_filter.json
+vendor/etc/sensors/config/sns_direct_channel.json
+vendor/etc/sensors/config/sns_distance_bound.json
+vendor/etc/sensors/config/sns_dpc.json
+vendor/etc/sensors/config/sns_facing.json
+vendor/etc/sensors/config/sns_fmv.json
+vendor/etc/sensors/config/sns_fmv_legacy.json
+vendor/etc/sensors/config/sns_geomag_rv.json
+vendor/etc/sensors/config/sns_gyro_cal.json
+vendor/etc/sensors/config/sns_heart_rate.json
+vendor/etc/sensors/config/sns_mag_cal.json
+vendor/etc/sensors/config/sns_mag_cal_legacy.json
+vendor/etc/sensors/config/sns_multishake.json
+vendor/etc/sensors/config/sns_pedometer.json
+vendor/etc/sensors/config/sns_rmd.json
+vendor/etc/sensors/config/sns_rotv.json
+vendor/etc/sensors/config/sns_smd.json
+vendor/etc/sensors/config/sns_tilt.json
+vendor/etc/sensors/config/sns_tilt_sw_disabled.json
+vendor/etc/sensors/config/sns_tilt_sw_enabled.json
+vendor/etc/sensors/config/sns_tilt_to_wake.json
+vendor/etc/sensors/config/sns_wrist_pedo.json
+vendor/etc/sensors/config/sx932x_0.json
+vendor/etc/sensors/config/tmf8801_0.json
+vendor/etc/sensors/config/wigig_sensing_0.json
+vendor/etc/sensors/hals.conf
+vendor/etc/sensors/proto/descriptor.proto
+vendor/etc/sensors/proto/mot_movement.proto
+vendor/etc/sensors/proto/nanopb.proto
+vendor/etc/sensors/proto/sns_accel.proto
+vendor/etc/sensors/proto/sns_accel_cal.proto
+vendor/etc/sensors/proto/sns_activity_recognition.proto
+vendor/etc/sensors/proto/sns_ambient_light.proto
+vendor/etc/sensors/proto/sns_ambient_temperature.proto
+vendor/etc/sensors/proto/sns_amd.proto
+vendor/etc/sensors/proto/sns_aont.proto
+vendor/etc/sensors/proto/sns_basic_gestures.proto
+vendor/etc/sensors/proto/sns_bring_to_ear.proto
+vendor/etc/sensors/proto/sns_cal.proto
+vendor/etc/sensors/proto/sns_client.proto
+vendor/etc/sensors/proto/sns_cmc.proto
+vendor/etc/sensors/proto/sns_da_test.proto
+vendor/etc/sensors/proto/sns_device_mode.proto
+vendor/etc/sensors/proto/sns_device_orient.proto
+vendor/etc/sensors/proto/sns_diag.proto
+vendor/etc/sensors/proto/sns_diag_sensor.proto
+vendor/etc/sensors/proto/sns_direct_channel.proto
+vendor/etc/sensors/proto/sns_dpc.proto
+vendor/etc/sensors/proto/sns_ext_svc.proto
+vendor/etc/sensors/proto/sns_facing.proto
+vendor/etc/sensors/proto/sns_fmv.proto
+vendor/etc/sensors/proto/sns_formatter.proto
+vendor/etc/sensors/proto/sns_fw.proto
+vendor/etc/sensors/proto/sns_game_rv.proto
+vendor/etc/sensors/proto/sns_geomag_rv.proto
+vendor/etc/sensors/proto/sns_gravity.proto
+vendor/etc/sensors/proto/sns_gyro.proto
+vendor/etc/sensors/proto/sns_gyro_cal.proto
+vendor/etc/sensors/proto/sns_gyro_rot_matrix.proto
+vendor/etc/sensors/proto/sns_hall.proto
+vendor/etc/sensors/proto/sns_heart_beat.proto
+vendor/etc/sensors/proto/sns_heart_rate.proto
+vendor/etc/sensors/proto/sns_hinge_angle.proto
+vendor/etc/sensors/proto/sns_humidity.proto
+vendor/etc/sensors/proto/sns_mag.proto
+vendor/etc/sensors/proto/sns_mag_cal.proto
+vendor/etc/sensors/proto/sns_oem1.proto
+vendor/etc/sensors/proto/sns_offbody_detect.proto
+vendor/etc/sensors/proto/sns_pedometer.proto
+vendor/etc/sensors/proto/sns_pedometer_wrist.proto
+vendor/etc/sensors/proto/sns_physical_sensor_test.proto
+vendor/etc/sensors/proto/sns_pose_6dof.proto
+vendor/etc/sensors/proto/sns_ppg.proto
+vendor/etc/sensors/proto/sns_pressure.proto
+vendor/etc/sensors/proto/sns_proximity.proto
+vendor/etc/sensors/proto/sns_psmd.proto
+vendor/etc/sensors/proto/sns_registry.proto
+vendor/etc/sensors/proto/sns_resampler.proto
+vendor/etc/sensors/proto/sns_rgb.proto
+vendor/etc/sensors/proto/sns_rmd.proto
+vendor/etc/sensors/proto/sns_rotv.proto
+vendor/etc/sensors/proto/sns_sar.proto
+vendor/etc/sensors/proto/sns_sensor_temperature.proto
+vendor/etc/sensors/proto/sns_sig_motion.proto
+vendor/etc/sensors/proto/sns_std.proto
+vendor/etc/sensors/proto/sns_std_event_gated_sensor.proto
+vendor/etc/sensors/proto/sns_std_sensor.proto
+vendor/etc/sensors/proto/sns_std_type.proto
+vendor/etc/sensors/proto/sns_step_detect.proto
+vendor/etc/sensors/proto/sns_suid.proto
+vendor/etc/sensors/proto/sns_thermopile.proto
+vendor/etc/sensors/proto/sns_threshold.proto
+vendor/etc/sensors/proto/sns_tilt.proto
+vendor/etc/sensors/proto/sns_tilt_to_wake.proto
+vendor/etc/sensors/proto/sns_tof_wake.proto
+vendor/etc/sensors/proto/sns_ultra_violet.proto
+vendor/etc/sensors/proto/sns_wake_gesture.proto
+vendor/etc/sensors/proto/sns_wrist_tilt_gesture.proto
+vendor/etc/sensors/sns_reg_config

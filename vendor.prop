@@ -134,7 +134,13 @@ vendor.audio.feature.record_play_concurency.enable=false
 vendor.audio.feature.snd_mon.enable=true
 vendor.audio.feature.spkr_prot.enable=true
 vendor.audio.feature.src_trkn.enable=true
-vendor.audio.feature.ssrec.enable=true
+# SSR (录音同步/多声道录音) 由原厂 blob libssrec.so 实现。该 blob 的
+# ssr_check_usecase() 直接解引用 in->device_list，其 struct stream_in 布局
+# 按原厂 Android 13 HAL 编译，与本树重建的 audio.primary.kona.so 不一致
+# → 打开输入流时 SIGSEGV (get_device_types+18) → audioserver 崩溃循环、
+# system_server 卡在 media.audio_policy、开机动画永不结束。
+# 原厂固件里 SSR 本身也关着 (ro.vendor.audio.sdk.ssr=false)，故不加载该库。
+vendor.audio.feature.ssrec.enable=false
 vendor.audio.feature.usb_offload.enable=true
 vendor.audio.feature.usb_offload_burst_mode.enable=true
 vendor.audio.feature.usb_offload_sidetone_volume.enable=false
