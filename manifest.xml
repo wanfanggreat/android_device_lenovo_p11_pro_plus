@@ -100,6 +100,16 @@
         <fqname>@2.1::IGoodixFingerprintDaemon/default</fqname>
         <fqname>@2.1::IGoodixFingerprintDaemonExt/default</fqname>
     </hal>
+    <!-- 标准指纹 HAL：framework 通过它发现指纹能力；缺这条设置里就没有指纹入口 -->
+    <hal format="hidl">
+        <name>android.hardware.biometrics.fingerprint</name>
+        <transport>hwbinder</transport>
+        <version>2.1</version>
+        <interface>
+            <name>IBiometricsFingerprint</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
     <hal format="hidl">
         <name>vendor.lenovo.hardware.battery</name>
         <transport>hwbinder</transport>

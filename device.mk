@@ -131,8 +131,10 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilts/stock/lib/vendor.qti.hardware.fingerprint@1.0.so:$(TARGET_COPY_OUT_VENDOR)/lib/vendor.qti.hardware.fingerprint@1.0.so \
     $(LOCAL_PATH)/prebuilts/stock/etc/init/android.hardware.biometrics.fingerprint@2.1-service.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/android.hardware.biometrics.fingerprint@2.1-service.rc \
     $(LOCAL_PATH)/prebuilts/stock/etc/permissions/qti_fingerprint_interface.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/qti_fingerprint_interface.xml \
-    $(LOCAL_PATH)/prebuilts/stock/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml \
     frameworks/native/data/etc/android.hardware.fingerprint.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.fingerprint.xml
+
+# 指纹 HAL 的 VINTF 声明写在 manifest.xml 里（见该文件 android.hardware.biometrics.fingerprint
+# 条目），不能用 PRODUCT_COPY_FILES 安装 vintf/manifest 下的 xml —— build 会直接报错。
 
 # Bluetooth
 PRODUCT_PACKAGES += \
