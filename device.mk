@@ -84,6 +84,56 @@ PRODUCT_COPY_FILES += \
     frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
     frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml
 
+# 原厂 vendor 中我们漏提取的音频/ADSP 文件（rfsa DSP 模块、ADSP PD 监听器、
+# Cirrus 扬声器保护、WebRTC 前处理等）。
+# 背景：采集拓扑 0x10018001 需要动态加载 DSP 模块，缺文件会让 DSP 拒绝
+# ADM_CMD_DEVICE_OPEN_V8（见 MIC-TEST-RESULT.md / 2026-10-17 分析）。
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/Elevoc_vocplus_capi2.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/Elevoc_vocplus_capi2.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libQ6MSFR_manager_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libQ6MSFR_manager_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libapps_mem_heap.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libapps_mem_heap.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libbitml_nsp_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libbitml_nsp_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libcamera_nn_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libcamera_nn_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libcvpdsp_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libcvpdsp_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libdspCV_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libdspCV_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libdsp_streamer_binning.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libdsp_streamer_binning.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libfastcvadsp.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libfastcvadsp.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libfastcvdsp_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libfastcvdsp_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libhexagon_nn_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libhexagon_nn_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libscveObjectSegmentation_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libscveObjectSegmentation_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libscveT2T_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libscveT2T_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libsnpe_dsp_v65_domains_v2_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libsnpe_dsp_v65_domains_v2_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/rfsa/adsp/libsnpe_dsp_v66_domains_v2_skel.so:$(TARGET_COPY_OUT_VENDOR)/lib/rfsa/adsp/libsnpe_dsp_v66_domains_v2_skel.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/libadsp_default_listener.so:$(TARGET_COPY_OUT_VENDOR)/lib/libadsp_default_listener.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/libaudio_log_utils.so:$(TARGET_COPY_OUT_VENDOR)/lib/libaudio_log_utils.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/libaudioalsa.so:$(TARGET_COPY_OUT_VENDOR)/lib/libaudioalsa.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/libaudioconfigstore.so:$(TARGET_COPY_OUT_VENDOR)/lib/libaudioconfigstore.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/libaudioparsers.so:$(TARGET_COPY_OUT_VENDOR)/lib/libaudioparsers.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib/libwebrtc_audio_preprocessing.so:$(TARGET_COPY_OUT_VENDOR)/lib/libwebrtc_audio_preprocessing.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib64/libaudio_log_utils.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libaudio_log_utils.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib64/libwebrtc_audio_preprocessing.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libwebrtc_audio_preprocessing.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib64/soundfx/libasphere.so:$(TARGET_COPY_OUT_VENDOR)/lib64/soundfx/libasphere.so\
+    $(LOCAL_PATH)/prebuilts/stock/lib64/soundfx/libshoebox.so:$(TARGET_COPY_OUT_VENDOR)/lib64/soundfx/libshoebox.so
+
+# 指纹（GoodIX）：原厂这套是"QTI HAL + GoodIX 私有库 + qfp-daemon"的组合，
+# 我们之前只提取了 APK 和固件，HAL/服务/库全漏了，所以设置里根本没有指纹入口。
+# 文件来自原厂 vendor 分区（prebuilts/stock 下原样保存）。
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/prebuilts/stock/bin/hw/android.hardware.biometrics.fingerprint@2.1-service:$(TARGET_COPY_OUT_VENDOR)/bin/hw/android.hardware.biometrics.fingerprint@2.1-service \
+    $(LOCAL_PATH)/prebuilts/stock/bin/qfp-daemon:$(TARGET_COPY_OUT_VENDOR)/bin/qfp-daemon \
+    $(LOCAL_PATH)/prebuilts/stock/lib64/libgf_ca.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libgf_ca.so \
+    $(LOCAL_PATH)/prebuilts/stock/lib64/libgf_hal.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libgf_hal.so \
+    $(LOCAL_PATH)/prebuilts/stock/lib64/libgoodixhwfingerprint.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libgoodixhwfingerprint.so \
+    $(LOCAL_PATH)/prebuilts/stock/lib64/libqfp-service.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libqfp-service.so \
+    $(LOCAL_PATH)/prebuilts/stock/lib64/libvendor.goodix.hardware.biometrics.fingerprint@2.1.so:$(TARGET_COPY_OUT_VENDOR)/lib64/libvendor.goodix.hardware.biometrics.fingerprint@2.1.so \
+    $(LOCAL_PATH)/prebuilts/stock/lib64/vendor.qti.hardware.fingerprint@1.0.so:$(TARGET_COPY_OUT_VENDOR)/lib64/vendor.qti.hardware.fingerprint@1.0.so \
+    $(LOCAL_PATH)/prebuilts/stock/lib64/hw/fingerprint.default.so:$(TARGET_COPY_OUT_VENDOR)/lib64/hw/fingerprint.default.so \
+    $(LOCAL_PATH)/prebuilts/stock/lib/vendor.qti.hardware.fingerprint@1.0.so:$(TARGET_COPY_OUT_VENDOR)/lib/vendor.qti.hardware.fingerprint@1.0.so \
+    $(LOCAL_PATH)/prebuilts/stock/etc/init/android.hardware.biometrics.fingerprint@2.1-service.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/android.hardware.biometrics.fingerprint@2.1-service.rc \
+    $(LOCAL_PATH)/prebuilts/stock/etc/permissions/qti_fingerprint_interface.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/qti_fingerprint_interface.xml \
+    $(LOCAL_PATH)/prebuilts/stock/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf/manifest/android.hardware.biometrics.fingerprint@2.1-service.xml \
+    frameworks/native/data/etc/android.hardware.fingerprint.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.fingerprint.xml
+
 # Bluetooth
 PRODUCT_PACKAGES += \
     android.hardware.bluetooth@1.1.vendor \
