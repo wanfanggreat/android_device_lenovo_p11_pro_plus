@@ -100,16 +100,15 @@
         <fqname>@2.1::IGoodixFingerprintDaemon/default</fqname>
         <fqname>@2.1::IGoodixFingerprintDaemonExt/default</fqname>
     </hal>
-    <!-- 标准指纹 HAL：framework 通过它发现指纹能力；缺这条设置里就没有指纹入口 -->
-    <hal format="hidl">
-        <name>android.hardware.biometrics.fingerprint</name>
-        <transport>hwbinder</transport>
-        <version>2.1</version>
-        <interface>
-            <name>IBiometricsFingerprint</name>
-            <instance>default</instance>
-        </interface>
-    </hal>
+    <!--
+        注意：android.hardware.biometrics.fingerprint@2.1 的 VINTF 声明不要写在这里。
+        AOSP 的 android.hardware.biometrics.fingerprint@2.1-service 模块自己在
+        Android.bp 里带了 vintf_fragments（hardware/interfaces/biometrics/fingerprint/
+        2.1/default/android.hardware.biometrics.fingerprint@2.1-service.xml），
+        会随 service 一起装进 vendor/etc/vintf/manifest/。
+        再在这里手写一份就是重复声明 —— checkvintf 失败，开机卡第一屏。
+        （2026-10-17 踩过一次）
+    -->
     <hal format="hidl">
         <name>vendor.lenovo.hardware.battery</name>
         <transport>hwbinder</transport>
