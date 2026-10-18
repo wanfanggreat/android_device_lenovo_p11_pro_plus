@@ -1,3 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Phase 0：空 overlay。后续放 config_deviceLightCapabilities 等 Lineage 资源配置。 -->
-<resources />
+<resources>
+    <!--
+      Phase 2B：防误触唤醒（Prevent accidental wake-up）。
+      PowerManagerService 读这两个值；设备有 tmf8801 距离传感器。
+    -->
+    <bool name="config_proximityCheckOnWake">true</bool>
+    <bool name="config_proximityCheckOnWakeEnabledByDefault">true</bool>
+</resources>

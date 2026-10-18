@@ -26,4 +26,12 @@
     <bool name="config_dozeAlwaysOnDisplayAvailable">true</bool>
     <bool name="config_dozeAfterScreenOffByDefault">true</bool>
     <bool name="config_dozeAlwaysOnEnabled">false</bool>
+
+    <!--
+      Phase 2B：双击唤醒 + 拿起亮屏。
+      内核 Goodix 驱动的 gesture/enable 已经是 1，这里打开框架开关，
+      设置里才会出现“双击唤醒”；拿起唤醒用 tilt_detector（无 pick_up_gesture）。
+    -->
+    <bool name="config_supportDoubleTapWake">true</bool>
+    <string name="config_quickPickupSensorType" translatable="false">android.sensor.tilt_detector</string>
 </resources>
