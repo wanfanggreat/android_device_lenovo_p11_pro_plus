@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 0：空 overlay。
+  仅用于验证 DEVICE_PACKAGE_OVERLAYS 机制本身不影响启动，不覆盖任何资源。
+  后续 Phase 1A/1B 会在这里加 config_defaultRefreshRate / config_defaultPeakRefreshRate /
+  config_setColorTransformAccelerated 等。
+-->
+<resources />

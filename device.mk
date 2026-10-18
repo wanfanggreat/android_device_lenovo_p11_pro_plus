@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# Resource overlays（功能适配走 overlay，不动 frameworks/base 源文件）
+DEVICE_PACKAGE_OVERLAYS += device/lenovo/p11_pro_plus/overlay
+
 # A/B
 $(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
 
