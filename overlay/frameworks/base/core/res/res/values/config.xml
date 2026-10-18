@@ -7,4 +7,13 @@
     -->
     <integer name="config_defaultRefreshRate">0</integer>
     <integer name="config_defaultPeakRefreshRate">90</integer>
+
+    <!--
+      Phase 1B：Night Light / 降低亮色。
+      先走 HWC 加速路径（原厂面板支持 setColorTransform）；若出现花屏/异常，
+      改成只覆盖 config_nightDisplayAvailable 和 config_reduceBrightColorsAvailable 走 GPU。
+    -->
+    <bool name="config_setColorTransformAccelerated">true</bool>
+    <bool name="config_nightDisplayAvailable">true</bool>
+    <bool name="config_reduceBrightColorsAvailable">true</bool>
 </resources>
