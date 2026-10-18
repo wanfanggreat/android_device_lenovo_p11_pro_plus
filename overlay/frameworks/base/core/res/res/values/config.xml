@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Phase 0：空 overlay。
-  仅用于验证 DEVICE_PACKAGE_OVERLAYS 机制本身不影响启动，不覆盖任何资源。
-  后续 Phase 1A/1B 会在这里加 config_defaultRefreshRate / config_defaultPeakRefreshRate /
-  config_setColorTransformAccelerated 等。
--->
-<resources />
+<resources>
+    <!--
+      Phase 1A：刷新率。
+      config_defaultRefreshRate=0 时由 config_defaultPeakRefreshRate 充当默认帧率，
+      因此默认会跑 90Hz；Smooth display 关闭时 Settings 写 peak=60，回落到 60Hz。
+    -->
+    <integer name="config_defaultRefreshRate">0</integer>
+    <integer name="config_defaultPeakRefreshRate">90</integer>
+</resources>
