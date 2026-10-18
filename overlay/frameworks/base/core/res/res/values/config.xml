@@ -34,4 +34,71 @@
     -->
     <bool name="config_supportDoubleTapWake">true</bool>
     <string name="config_quickPickupSensorType" translatable="false">android.sensor.tilt_detector</string>
+
+    <!--
+      Phase 3A：自适应亮度。曲线全部取自原厂 framework-res.apk（ZUI 15.0.485）：
+      15 个 lux 档位 + 16 个 nits 输出；nits→backlight 映射 9 个点。
+      原厂 config_screenBrightnessSettingMinimum=29（我们原来是 10）。
+      注意：定义了 xxxDisplayValuesNits 后，LcdBacklightValues 必须保持为空。
+    -->
+    <bool name="config_automatic_brightness_available">true</bool>
+    <integer-array name="config_autoBrightnessLevels">
+        <item>10</item>
+        <item>30</item>
+        <item>60</item>
+        <item>90</item>
+        <item>150</item>
+        <item>200</item>
+        <item>350</item>
+        <item>450</item>
+        <item>550</item>
+        <item>720</item>
+        <item>950</item>
+        <item>1100</item>
+        <item>1500</item>
+        <item>2000</item>
+        <item>3500</item>
+    </integer-array>
+    <array name="config_autoBrightnessDisplayValuesNits">
+        <item>10</item>
+        <item>45</item>
+        <item>65</item>
+        <item>85</item>
+        <item>85</item>
+        <item>85</item>
+        <item>110</item>
+        <item>140</item>
+        <item>180</item>
+        <item>210</item>
+        <item>250</item>
+        <item>280</item>
+        <item>320</item>
+        <item>340</item>
+        <item>360</item>
+        <item>420</item>
+    </array>
+    <array name="config_screenBrightnessNits">
+        <item>6</item>
+        <item>13</item>
+        <item>30</item>
+        <item>80</item>
+        <item>119</item>
+        <item>224</item>
+        <item>320</item>
+        <item>351</item>
+        <item>420</item>
+    </array>
+    <integer-array name="config_screenBrightnessBacklight">
+        <item>25</item>
+        <item>45</item>
+        <item>76</item>
+        <item>120</item>
+        <item>145</item>
+        <item>195</item>
+        <item>230</item>
+        <item>240</item>
+        <item>255</item>
+    </integer-array>
+    <integer name="config_screenBrightnessSettingMinimum">29</integer>
+    <integer name="config_autoBrightnessDarkeningLightDebounce">4000</integer>
 </resources>
