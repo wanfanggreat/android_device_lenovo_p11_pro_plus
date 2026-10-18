@@ -101,4 +101,11 @@
     </integer-array>
     <integer name="config_screenBrightnessSettingMinimum">29</integer>
     <integer name="config_autoBrightnessDarkeningLightDebounce">4000</integer>
+
+    <!--
+      Phase 3C：熄屏长按电源键手电筒。
+      开关在 LineageParts“按键”里（LineageSettings.System.TORCH_LONG_PRESS_POWER_GESTURE，
+      默认 0）；这个 bool 只负责允许“非交互状态下”也走长按逻辑。
+    -->
+    <bool name="config_supportLongPressPowerWhenNonInteractive">true</bool>
 </resources>
