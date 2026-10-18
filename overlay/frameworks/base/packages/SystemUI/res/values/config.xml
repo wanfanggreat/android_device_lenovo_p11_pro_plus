@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Phase 2A 补充：SystemUI 的 DozeParameters 用这个开关决定 AOD 时是否
+      请求 Display.STATE_DOZE。AOSP 默认 false，会让面板直接 OFF（AOD 黑屏）。
+      补成 true 后 DozeMachine 才会在 DOZE_AOD 状态下请求 DOZE。
+    -->
+    <bool name="doze_display_state_supported">true</bool>
+</resources>
