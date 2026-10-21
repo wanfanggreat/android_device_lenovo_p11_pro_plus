@@ -18,6 +18,16 @@
     </string-array>
 
     <!--
+      时间同步：AOSP 默认的 time.android.com 在国内容易被阻断（UDP 123 超时），
+      导致自动时间一直失败、重启后回落到构建时间。改用国内可达的 NTP。
+      Settings.Global.NTP_SERVER 优先级更高，可用 settings put 覆盖这里。
+    -->
+    <string-array name="config_ntpServers" translatable="false">
+        <item>ntp://ntp.aliyun.com</item>
+        <item>ntp://cn.pool.ntp.org</item>
+    </string-array>
+
+    <!--
       Phase 1B：Night Light / 降低亮色。
       先走 HWC 加速路径（原厂面板支持 setColorTransform）；若出现花屏/异常，
       改成只覆盖 config_nightDisplayAvailable 和 config_reduceBrightColorsAvailable 走 GPU。
