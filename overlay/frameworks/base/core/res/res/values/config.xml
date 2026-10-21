@@ -9,6 +9,15 @@
     <integer name="config_defaultPeakRefreshRate">90</integer>
 
     <!--
+      HIDL 指纹：Android 14 的 AuthService 只按 config_biometric_sensors 注册
+      HIDL 传感器，AOSP 默认数组为空。格式为 id:modality:strength，
+      0:2:15 = ID0 / Fingerprint / Strong。
+    -->
+    <string-array name="config_biometric_sensors" translatable="false">
+        <item>0:2:15</item>
+    </string-array>
+
+    <!--
       Phase 1B：Night Light / 降低亮色。
       先走 HWC 加速路径（原厂面板支持 setColorTransform）；若出现花屏/异常，
       改成只覆盖 config_nightDisplayAvailable 和 config_reduceBrightColorsAvailable 走 GPU。

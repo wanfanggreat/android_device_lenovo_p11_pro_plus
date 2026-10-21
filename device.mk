@@ -144,6 +144,9 @@ PRODUCT_COPY_FILES += \
 # 指纹 HAL 的 VINTF 声明写在 manifest.xml 里（见该文件 android.hardware.biometrics.fingerprint
 # 条目），不能用 PRODUCT_COPY_FILES 安装 vintf/manifest 下的 xml —— build 会直接报错。
 
+# GoodIX 的 vendor HIDL 库依赖旧 libhidlbase 的兼容符号。
+PRODUCT_PACKAGES += libhidlbase_shim
+
 # Bluetooth
 PRODUCT_PACKAGES += \
     android.hardware.bluetooth@1.1.vendor \
@@ -247,7 +250,8 @@ PRODUCT_COPY_FILES += \
 # Health
 PRODUCT_PACKAGES += \
     android.hardware.health@2.1-impl \
-    android.hardware.health@2.1-service
+    android.hardware.health@2.1-service \
+    vendor.lineage.health-service.default
 
 # HIDL
 PRODUCT_PACKAGES += \

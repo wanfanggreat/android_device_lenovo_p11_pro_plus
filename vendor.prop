@@ -57,7 +57,9 @@ persist.vendor.qcom.bluetooth.scram.enabled=false
 persist.vendor.qcom.bluetooth.soc=hastings
 persist.vendor.qcom.bluetooth.twsp_state.enabled=false
 persist.vendor.qcomsysd.enabled=1
-persist.vendor.qfp=true
+# 本机指纹走 Goodix HAL（/dev/goodix_fp）；QFP daemon 在缺少 qbt IPC
+# 的内核上初始化失败并抢占 HAL 接口，因此保持关闭。
+persist.vendor.qfp=false
 persist.vendor.radio.enableadvancedscan=true
 persist.vendor.sensors.allow_non_default_discovery=true
 persist.vendor.sensors.sync_request=true
