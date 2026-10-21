@@ -81,6 +81,9 @@ ro.soc.model=SM8250
 ro.surface_flinger.force_hwc_copy_for_virtual_displays=true
 ro.surface_flinger.has_HDR_display=true
 ro.surface_flinger.has_wide_color_display=true
+# 原厂 vendor/build.prop 的值：面板相对设备自然方向挂了 270°。
+# 不设这个（默认 ORIENTATION_0）时，自动旋转的画面会比机身方向偏 90°。
+ro.surface_flinger.primary_display_orientation=ORIENTATION_270
 ro.surface_flinger.protected_contents=true
 ro.surface_flinger.set_touch_timer_ms=200
 ro.surface_flinger.use_color_management=true
