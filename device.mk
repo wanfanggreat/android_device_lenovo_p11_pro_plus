@@ -7,6 +7,11 @@
 # Resource overlays（功能适配走 overlay，不动 frameworks/base 源文件）
 DEVICE_PACKAGE_OVERLAYS += device/lenovo/p11_pro_plus/overlay
 
+# 触摸/手写笔方向补偿：显示面板安装了 270°
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/usr/idc/goodix_ts.idc:$(TARGET_COPY_OUT_SYSTEM)/usr/idc/goodix_ts.idc \
+    $(LOCAL_PATH)/usr/idc/goodix_ts_pen.idc:$(TARGET_COPY_OUT_SYSTEM)/usr/idc/goodix_ts_pen.idc
+
 # A/B
 $(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
 
