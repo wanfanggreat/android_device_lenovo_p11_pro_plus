@@ -90,6 +90,9 @@ on fs
     chown root system /sys/class/ref/ref/brightness_crtl
     chmod 0664 /sys/class/ref/ref/brightness_crtl
     #-PEARLPLUST-1905, huangxinglue.wt, ADD, 2023.11.24, add display hidl
+    # vendor.lineage.health charging control: HAL runs as system
+    chown system system /sys/class/power_supply/battery/input_suspend
+    chmod 0660 /sys/class/power_supply/battery/input_suspend
 
 on post-fs
     # set RLIMIT_MEMLOCK to 64MB

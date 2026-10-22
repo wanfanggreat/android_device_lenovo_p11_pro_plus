@@ -2,6 +2,14 @@
 /dev/socket/audio_hw_socket                                             u:object_r:audio_socket:s0
 /sys/devices/platform/soc/a8c000.i2c/i2c-2/2-005a/f0_value              u:object_r:vendor_sysfs_audio:s0
 
+# Media / Dolby Codec2
+# Dolby C2 注册 android.hardware.media.c2::IComponentStore/default1。
+# 不标 domain 时它以 init 身份运行；严格模式下 init 不能执行 vendor_file，
+# 服务起不来，mediaserver 的 getService("default1") 永久阻塞，进而卡住
+# cameraserver 的 MediaCodecList 初始化（media.camera 不注册）。
+# 复用 QTI Codec2 的 mediacodec_exec 域。
+/vendor/bin/hw/vendor\.dolby\.media\.c2@1\.0-service                     u:object_r:mediacodec_exec:s0
+
 # Bluetooth
 /vendor/bin/init\.mi\.btmac\.sh                                         u:object_r:vendor_qti_init_shell_exec:s0
 
