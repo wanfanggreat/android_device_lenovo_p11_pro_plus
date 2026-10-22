@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Phase 1A：刷新率。
+      config_defaultRefreshRate=0 时由 config_defaultPeakRefreshRate 充当默认帧率，
+      因此默认会跑 90Hz；Smooth display 关闭时 Settings 写 peak=60，回落到 60Hz。
+    -->
+    <integer name="config_defaultRefreshRate">0</integer>
+    <integer name="config_defaultPeakRefreshRate">90</integer>
+
+    <!--
+      HIDL 指纹：Android 14 的 AuthService 只按 config_biometric_sensors 注册
+      HIDL 传感器，AOSP 默认数组为空。格式为 id:modality:strength，
+      0:2:15 = ID0 / Fingerprint / Strong。
+    -->
+    <string-array name="config_biometric_sensors" translatable="false">
+        <item>0:2:15</item>
+    </string-array>
+
+    <!--
+      时间同步：AOSP 默认的 time.android.com 在国内容易被阻断（UDP 123 超时），
+      导致自动时间一直失败、重启后回落到构建时间。改用国内可达的 NTP。
+      Settings.Global.NTP_SERVER 优先级更高，可用 settings put 覆盖这里。
+    -->
+    <string-array name="config_ntpServers" translatable="false">
+        <item>ntp://ntp.aliyun.com</item>
+        <item>ntp://cn.pool.ntp.org</item>
+    </string-array>
+
+    <!--
+      Phase 1B：Night Light / 降低亮色。
+      先走 HWC 加速路径（原厂面板支持 setColorTransform）；若出现花屏/异常，
+      改成只覆盖 config_nightDisplayAvailable 和 config_reduceBrightColorsAvailable 走 GPU。
+    -->
+    <bool name="config_setColorTransformAccelerated">true</bool>
+    <bool name="config_nightDisplayAvailable">true</bool>
+    <bool name="config_reduceBrightColorsAvailable">true</bool>
+
+    <!--
+      Phase 2A：Doze / AOD。
+      - DozeService 存在，但 AOSP 默认 config_dozeComponent 为空，能力从未暴露
+      - 默认不自动开 AOD（config_dozeAlwaysOnEnabled=false），用户可在设置里手动开
+    -->
+    <string name="config_dozeComponent" translatable="false">com.android.systemui/com.android.systemui.doze.DozeService</string>
+    <bool name="config_dozeAlwaysOnDisplayAvailable">true</bool>
+    <bool name="config_dozeAfterScreenOffByDefault">true</bool>
+    <bool name="config_dozeAlwaysOnEnabled">false</bool>
+
+    <!--
+      Phase 2B：双击唤醒 + 拿起亮屏。
+      内核 Goodix 驱动的 gesture/enable 已经是 1，这里打开框架开关，
+      设置里才会出现“双击唤醒”；拿起唤醒用 tilt_detector（无 pick_up_gesture）。
+    -->
+    <bool name="config_supportDoubleTapWake">true</bool>
+    <string name="config_quickPickupSensorType" translatable="false">android.sensor.tilt_detector</string>
+
+    <!--
+      Phase 3A：自适应亮度。曲线全部取自原厂 framework-res.apk（ZUI 15.0.485）：
+      15 个 lux 档位 + 16 个 nits 输出；nits→backlight 映射 9 个点。
+      原厂 config_screenBrightnessSettingMinimum=29（我们原来是 10）。
+      注意：定义了 xxxDisplayValuesNits 后，LcdBacklightValues 必须保持为空。
+    -->
+    <bool name="config_automatic_brightness_available">true</bool>
+    <integer-array name="config_autoBrightnessLevels">
+        <item>10</item>
+        <item>30</item>
+        <item>60</item>
+        <item>90</item>
+        <item>150</item>
+        <item>200</item>
+        <item>350</item>
+        <item>450</item>
+        <item>550</item>
+        <item>720</item>
+        <item>950</item>
+        <item>1100</item>
+        <item>1500</item>
+        <item>2000</item>
+        <item>3500</item>
+    </integer-array>
+    <array name="config_autoBrightnessDisplayValuesNits">
+        <item>10</item>
+        <item>45</item>
+        <item>65</item>
+        <item>85</item>
+        <item>85</item>
+        <item>85</item>
+        <item>110</item>
+        <item>140</item>
+        <item>180</item>
+        <item>210</item>
+        <item>250</item>
+        <item>280</item>
+        <item>320</item>
+        <item>340</item>
+        <item>360</item>
+        <item>420</item>
+    </array>
+    <array name="config_screenBrightnessNits">
+        <item>6</item>
+        <item>13</item>
+        <item>30</item>
+        <item>80</item>
+        <item>119</item>
+        <item>224</item>
+        <item>320</item>
+        <item>351</item>
+        <item>420</item>
+    </array>
+    <integer-array name="config_screenBrightnessBacklight">
+        <item>25</item>
+        <item>45</item>
+        <item>76</item>
+        <item>120</item>
+        <item>145</item>
+        <item>195</item>
+        <item>230</item>
+        <item>240</item>
+        <item>255</item>
+    </integer-array>
+    <integer name="config_screenBrightnessSettingMinimum">29</integer>
+    <integer name="config_autoBrightnessDarkeningLightDebounce">4000</integer>
+
+    <!--
+      Phase 3C：熄屏长按电源键手电筒。
+      开关在 LineageParts“按键”里（LineageSettings.System.TORCH_LONG_PRESS_POWER_GESTURE，
+      默认 0）；这个 bool 只负责允许“非交互状态下”也走长按逻辑。
+    -->
+    <bool name="config_supportLongPressPowerWhenNonInteractive">true</bool>
+</resources>

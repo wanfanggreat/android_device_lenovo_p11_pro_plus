@@ -1,0 +1,5 @@
+# vendor.lineage.health charging control HAL writes input_suspend.
+# The on-device label in this kernel is vendor_sysfs_battery_supply
+# (qcom sepolicy_vndr), not the legacy sysfs_battery_supply type that
+# device/lineage/sepolicy/qcom grants.
+rw_dir_file(hal_lineage_health_default, vendor_sysfs_battery_supply)

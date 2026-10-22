@@ -1,0 +1,11 @@
+service vendor.fps_hal /vendor/bin/hw/android.hardware.biometrics.fingerprint@2.1-service
+    # "class hal" causes a race condition on some devices due to files created
+    # in /data. As a workaround, postpone startup until later in boot once
+    # /data is mounted.
+    class late_start
+    user system
+    group system input uhid
+    writepid /dev/cpuset/top-app/tasks
+    # GoodIX 的 vendor HIDL 库仍是针对旧 libhidlbase 编译的，需要补回
+    # gBnConstructorMap/gBsConstructorMap 兼容符号。
+    setenv LD_PRELOAD /vendor/lib64/libhidlbase_shim.so
