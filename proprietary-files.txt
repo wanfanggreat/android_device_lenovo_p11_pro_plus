@@ -1708,7 +1708,9 @@ vendor/bin/cnss-daemon
 #     android.hardware.wifi.supplicant-service.rc) 由 wpa_supplicant 模块的
 #     LOCAL_INIT_RC 自动安装到同一路径，声明 `interface aidl ...ISupplicant/default`。
 vendor/etc/init/vendor.qti.hardware.fstman@1.0-service.rc
-vendor/etc/init/vendor.qti.hardware.wifi.wifilearner@1.0-service.rc
+# wifilearner 的 HIDL 接口是预编译 blob，没有 hidl_interface 模块，
+# host_init_verifier 会拒绝它；不安装该可选服务的 rc。
+# vendor/etc/init/vendor.qti.hardware.wifi.wifilearner@1.0-service.rc
 vendor/etc/init/vendor.qti.hardware.wigig.supptunnel@1.0-service.rc
 # 旧 HIDL hostapd fragment：AOSP hostapd 使用 AIDL v3 fragment，
 # 同一路径会与 external/wpa_supplicant_8/hostapd 的 fragment 冲突。
