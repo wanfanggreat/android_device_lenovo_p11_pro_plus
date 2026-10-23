@@ -167,10 +167,6 @@ PRODUCT_PACKAGES_DEBUG += \
 PRODUCT_PACKAGES += \
     android.hardware.camera.common@1.0.vendor
 
-# Configstore
-PRODUCT_PACKAGES += \
-    disable_configstore
-
 # Display
 PRODUCT_PACKAGES += \
     vendor.qti.hardware.display.composer-service
@@ -179,11 +175,6 @@ PRODUCT_PACKAGES += \
     android.hardware.graphics.mapper@3.0-impl-qti-display \
     android.hardware.graphics.mapper@4.0-impl-qti-display \
     vendor.qti.hardware.display.allocator-service
-
-PRODUCT_PACKAGES += \
-    android.hardware.memtrack@1.0-impl \
-    android.hardware.memtrack@1.0-service \
-    memtrack.kona
 
 PRODUCT_PACKAGES += \
     libdisplayconfig.qti \
@@ -278,11 +269,7 @@ PRODUCT_PACKAGES += \
     android.hardware.keymaster@4.1.vendor
 
 # Lights
-# android.hardware.light@2.0.vendor：libFactoryHALCommon.so 依赖它，
-# 缺库时 interfaces.factoryInterface@1.0-service 无法 dlopen。
-PRODUCT_PACKAGES += \
-    android.hardware.light-V1-ndk_platform.vendor \
-    android.hardware.light@2.0.vendor
+# vendor 预编译 AIDL android.hardware.lights-service.qti 已由 vendor.mk 安装。
 
 PRODUCT_PACKAGES += \
     libavservices_minijail \
@@ -322,13 +309,7 @@ PRODUCT_PACKAGES += \
 
 # OMX
 PRODUCT_PACKAGES += \
-    libmm-omxcore \
-    libOmxAacEnc \
-    libOmxAmrEnc \
     libOmxCore \
-    libOmxEvrcEnc \
-    libOmxG711Enc \
-    libOmxQcelp13Enc \
     libOmxVdec \
     libOmxVenc \
     libstagefrighthw
@@ -499,12 +480,11 @@ PRODUCT_SOONG_NAMESPACES += \
     $(LOCAL_PATH)
 
 # Thermal
-PRODUCT_PACKAGES += \
-    android.hardware.thermal@2.0-service.qti
+# vendor 预编译 android.hardware.thermal@2.0-service.qti 已由 vendor.mk 安装。
 
 # USB
 PRODUCT_PACKAGES += \
-    android.hardware.usb@1.3-service-qti
+    android.hardware.usb-service.qti
 
 # Vendor service manager
 PRODUCT_PACKAGES += \

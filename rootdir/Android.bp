@@ -89,17 +89,9 @@ sh_binary {
     vendor: true,
 }
 
-sh_binary {
-    name: "init.qti.display_boot.sh",
-    src: "bin/init.qti.display_boot.sh",
-    vendor: true,
-}
-
-sh_binary {
-    name: "init.qti.media.sh",
-    src: "bin/init.qti.media.sh",
-    vendor: true,
-}
+// init.qti.display_boot.sh / init.qti.media.sh 由 LOS24 的
+// hardware/qcom-caf/sm8250 定义同名模块，设备树不再重复定义，
+// PRODUCT_PACKAGES 中的引用会解析到 QCOM CAF 版本。
 
 sh_binary {
     name: "init.qti.qcv.sh",

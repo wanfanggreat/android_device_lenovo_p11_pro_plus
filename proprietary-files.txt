@@ -1710,7 +1710,9 @@ vendor/bin/cnss-daemon
 vendor/etc/init/vendor.qti.hardware.fstman@1.0-service.rc
 vendor/etc/init/vendor.qti.hardware.wifi.wifilearner@1.0-service.rc
 vendor/etc/init/vendor.qti.hardware.wigig.supptunnel@1.0-service.rc
-vendor/etc/vintf/manifest/android.hardware.wifi.hostapd.xml
+# 旧 HIDL hostapd fragment：AOSP hostapd 使用 AIDL v3 fragment，
+# 同一路径会与 external/wpa_supplicant_8/hostapd 的 fragment 冲突。
+# vendor/etc/vintf/manifest/android.hardware.wifi.hostapd.xml
 vendor/lib/libwifi-hal-ctrl.so
 vendor/lib/libwifi-hal-qcom.so
 vendor/lib/vendor.qti.hardware.wigig.netperftuner@1.0.so
