@@ -1711,7 +1711,9 @@ vendor/etc/init/vendor.qti.hardware.fstman@1.0-service.rc
 # wifilearner 的 HIDL 接口是预编译 blob，没有 hidl_interface 模块，
 # host_init_verifier 会拒绝它；不安装该可选服务的 rc。
 # vendor/etc/init/vendor.qti.hardware.wifi.wifilearner@1.0-service.rc
-vendor/etc/init/vendor.qti.hardware.wigig.supptunnel@1.0-service.rc
+# WiGig supptunnel 的 HIDL 接口也是预编译 blob，未编译 hidl_interface；
+# WiGig 非本机 WiFi 必需，不安装该可选服务的 rc。
+# vendor/etc/init/vendor.qti.hardware.wigig.supptunnel@1.0-service.rc
 # 旧 HIDL hostapd fragment：AOSP hostapd 使用 AIDL v3 fragment，
 # 同一路径会与 external/wpa_supplicant_8/hostapd 的 fragment 冲突。
 # vendor/etc/vintf/manifest/android.hardware.wifi.hostapd.xml
