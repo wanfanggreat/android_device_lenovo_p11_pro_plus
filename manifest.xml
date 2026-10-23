@@ -14,11 +14,8 @@
         <transport>hwbinder</transport>
         <fqname>@1.0::IBluetoothHci/default</fqname>
     </hal>
-    <hal format="hidl">
-        <name>android.hardware.bluetooth.audio</name>
-        <transport>hwbinder</transport>
-        <fqname>@2.0::IBluetoothAudioProvidersFactory/default</fqname>
-    </hal>
+    <!-- android.hardware.bluetooth.audio 的 HIDL 2.0 已从 A17 的 FCM level 7
+         移除；框架改用 AIDL v6（AOSP 的 bluetooth_audio.xml 声明）。 -->
     <hal format="hidl">
         <name>android.hardware.camera.provider</name>
         <transport>hwbinder</transport>
