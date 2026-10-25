@@ -13,6 +13,11 @@
 # Bluetooth
 /vendor/bin/init\.mi\.btmac\.sh                                         u:object_r:vendor_qti_init_shell_exec:s0
 
+# KeyMint (AOSP 规则只匹配不带 .nonsecure 的文件名；本机 stock HAL 名为
+# android.hardware.security.keymint-service.nonsecure，不补这条会被标成
+# vendor_file，init 无法进入 hal_keymint_default 域，keystore2/vold 会卡死)
+/(vendor|system/vendor)/bin/hw/android\.hardware\.security\.keymint-service\.nonsecure u:object_r:hal_keymint_default_exec:s0
+
 # Camera
 /mnt/vendor/persist/camera(/.*)?                                        u:object_r:camera_persist_file:s0
 /vendor/bin/remosaic_daemon                                             u:object_r:remosaic_daemon_exec:s0
