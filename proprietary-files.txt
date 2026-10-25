@@ -712,7 +712,6 @@ vendor/lib64/libsdedrm.so
 vendor/lib64/libsdm-color.so
 vendor/lib64/libsdm-diag.so
 vendor/lib64/libsdm-disp-vndapis.so
-vendor/lib64/libsdmcore.so
 vendor/lib64/libsdmextension.so
 vendor/lib64/libsdmutils.so
 vendor/lib64/libtinyxml2_1.so
@@ -2672,3 +2671,9 @@ vendor/etc/sensors/proto/sns_ultra_violet.proto
 vendor/etc/sensors/proto/sns_wake_gesture.proto
 vendor/etc/sensors/proto/sns_wrist_tilt_gesture.proto
 vendor/etc/sensors/sns_reg_config
+
+# Thermal/Health HIDL libs (prebuilt vendor HALs need them)
+vendor/lib64/android.hardware.thermal@1.0.so
+vendor/lib64/android.hardware.thermal@2.0.so
+vendor/lib/android.hardware.health@2.1.so
+vendor/lib64/android.hardware.health@2.1.so
