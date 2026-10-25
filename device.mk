@@ -7,6 +7,9 @@
 # Resource overlays（功能适配走 overlay，不动 frameworks/base 源文件）
 DEVICE_PACKAGE_OVERLAYS += device/lenovo/p11_pro_plus/overlay
 
+# ION：4.19 内核只有 legacy /dev/ion，没有 dmabuf heap
+$(call soong_config_set_bool,libion,legacy_impl,true)
+
 # 触摸/手写笔方向补偿：显示面板安装了 270°
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/usr/idc/goodix_ts.idc:$(TARGET_COPY_OUT_SYSTEM)/usr/idc/goodix_ts.idc \
@@ -270,6 +273,9 @@ PRODUCT_PACKAGES += \
 
 # Lights
 # vendor 预编译 AIDL android.hardware.lights-service.qti 已由 vendor.mk 安装。
+# 该二进制 NEEDED android.hardware.light-V1-ndk{,_platform}.so；LOS24 的
+# AIDL light 未生成 NDK 后端，这两个库从 LOS21 vendor 以预编译 blob 补入
+# （见 proprietary-files.txt）。
 
 PRODUCT_PACKAGES += \
     libavservices_minijail \
