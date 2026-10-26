@@ -22,3 +22,38 @@ cc_binary {
         "libutils",
     ],
 }
+
+// Exercises the real AOSP km_compat conversion path
+// (KeyMintDevice::createKeyMintDevice(TEE)) in an isolated process.
+// Build with `m kmcompat_probe` and push to /data/local/tmp.
+cc_binary {
+    name: "kmcompat_probe",
+    defaults: ["keymint_use_latest_hal_aidl_ndk_shared"],
+    srcs: ["kmcompat_probe.cpp"],
+    include_dirs: [
+        "hardware/interfaces/security/keymint/support/include",
+        "system/security/keystore2/src/km_compat",
+        "system/security/keystore2/src/crypto/include",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+    ],
+    shared_libs: [
+        "android.hardware.gatekeeper@1.0",
+        "android.hardware.keymaster@3.0",
+        "android.hardware.keymaster@4.0",
+        "android.hardware.keymaster@4.1",
+        "android.hardware.security.secureclock-V1-ndk",
+        "android.hardware.security.sharedsecret-V1-ndk",
+        "android.security.compat-ndk",
+        "libbase",
+        "libbinder_ndk",
+        "libcrypto",
+        "libhidlbase",
+        "libkeymaster4_1support",
+        "libkm_compat",
+        "libutils",
+    ],
+}
