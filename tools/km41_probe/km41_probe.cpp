@@ -10,7 +10,15 @@
  *   hmac     - do the keystore2 startup calls getHmacSharingParameters() and
  *              computeSharedHmac() return?
  *   crypto   - can the HAL generate an RSA key, sign, verify and delete it?
+ *   lockstate- auth-bound key: sign with a Gatekeeper token, deviceLocked()
+ *              with an empty token, then re-test the same token, no token and
+ *              a fresh token. Answers whether the QTI HAL applies the lock
+ *              even though it returns -40 INVALID_TAG.
  *   all      - list, connect, hmac, crypto in that order.
+ *
+ * The KEYMASTER and GATEKEEPER HALs are lazy on this device: they may be
+ * absent from hwservicemanager while idle. Use getService() (blocking, which
+ * triggers the lazy start) instead of tryGetService().
  *
  * Every step is printed and flushed before the HIDL call is issued so that a
  * hang in the HAL is visible as "last step printed". The probe never calls
@@ -23,6 +31,7 @@
 #include <cstring>
 #include <string>
 #include <time.h>
+#include <unistd.h>
 #include <vector>
 
 #include <android/hardware/gatekeeper/1.0/IGatekeeper.h>
@@ -402,9 +411,11 @@ static int do_crypto(bool noAuthRequired) {
 
 
 static sp<km40::IKeymasterDevice> get_device() {
-    auto device41 = km41::IKeymasterDevice::tryGetService("default");
+    // Lazy HAL: getService() blocks and triggers the lazy start; tryGetService()
+    // returns NULL when the QTI HAL has unregistered while idle.
+    auto device41 = km41::IKeymasterDevice::getService("default");
     sp<km40::IKeymasterDevice> device = device41;
-    if (!device) device = km40::IKeymasterDevice::tryGetService("default");
+    if (!device) device = km40::IKeymasterDevice::getService("default");
     return device;
 }
 
@@ -535,9 +546,9 @@ static int do_crypto_ec() {
 
 
 static int do_unlock() {
-    auto device41 = km41::IKeymasterDevice::tryGetService("default");
+    auto device41 = km41::IKeymasterDevice::getService("default");
     if (!device41) {
-        STEP("tryGetService(4.1/default) -> NULL");
+        STEP("getService(4.1/default) -> NULL");
         return 2;
     }
     km40::VerificationToken verificationToken{};
@@ -644,8 +655,8 @@ static uint32_t be32_to_host(uint32_t value) { return __builtin_bswap32(value); 
 static uint64_t be64_to_host(uint64_t value) { return __builtin_bswap64(value); }
 
 static int do_gatekeeper() {
-    auto gatekeeper = gk10::IGatekeeper::tryGetService("default");
-    STEP("tryGetService(gatekeeper@1.0/default) -> %s", gatekeeper ? "non-null" : "NULL");
+    auto gatekeeper = gk10::IGatekeeper::getService("default");
+    STEP("getService(gatekeeper@1.0/default) -> %s", gatekeeper ? "non-null" : "NULL");
     if (!gatekeeper) return 2;
 
     const uint32_t kTestUid = 99999;
@@ -794,6 +805,189 @@ static int do_gatekeeper() {
     return result;
 }
 
+// Sign with an auth-bound key and report the keymaster error from finish().
+// Returns the finish error code, or the begin error code if begin failed.
+static int sign_auth_bound(sp<km40::IKeymasterDevice> device, const hidl_vec<uint8_t>& keyBlob,
+                           const km40::HardwareAuthToken& authToken, const char* label) {
+    km41::AuthorizationSetBuilder opBuilder;
+    opBuilder.Digest(km41::Digest::SHA_2_256).Padding(km41::PaddingMode::RSA_PKCS1_1_5_SIGN);
+    auto opParams = opBuilder.hidl_data();
+
+    const char kMessage[] = "lockstate auth-bound sign";
+    hidl_vec<uint8_t> message;
+    message.setToExternal(reinterpret_cast<uint8_t*>(const_cast<char*>(kMessage)),
+                          strlen(kMessage));
+
+    int32_t beginErr = 0;
+    uint64_t op = 0;
+    STEP("%s: begin(SIGN) ...", label);
+    auto rcBegin = device->begin(
+        km40::KeyPurpose::SIGN, keyBlob, opParams, authToken,
+        [&](km40::ErrorCode err, const hidl_vec<km40::KeyParameter>&, uint64_t handle) {
+            beginErr = static_cast<int32_t>(err);
+            if (err == km40::ErrorCode::OK) op = handle;
+        });
+    STEP("%s: begin -> err=%d (%s) transport=%s", label, beginErr,
+         err_name(static_cast<km40::ErrorCode>(beginErr)), rcBegin.description().c_str());
+    if (op == 0) return beginErr;
+
+    km40::VerificationToken verificationToken{};
+    int32_t finishErr = 0;
+    STEP("%s: finish(SIGN) ...", label);
+    auto rcFinish = device->finish(
+        op, opParams, message, hidl_vec<uint8_t>(), authToken, verificationToken,
+        [&](km40::ErrorCode err, const hidl_vec<km40::KeyParameter>&,
+            const hidl_vec<uint8_t>& output) {
+            finishErr = static_cast<int32_t>(err);
+            STEP("%s: finish -> err=%d (%s) sig_len=%zu", label, finishErr,
+                 err_name(static_cast<km40::ErrorCode>(finishErr)), output.size());
+        });
+    STEP("%s: finish transport=%s", label, rcFinish.description().c_str());
+    if (finishErr != 0) device->abort(op);
+    return finishErr;
+}
+
+// P2-B1: does the QTI HAL apply deviceLocked() even though it rejects the
+// empty verification token with -40 INVALID_TAG? Sequence:
+//   1. Gatekeeper enroll+verify -> auth token t0
+//   2. generate an RSA key bound to t0's USER_SECURE_ID (AUTH_TIMEOUT=30)
+//   3. sign with t0 -> expect OK
+//   4. deviceLocked(false, empty token) -> expect -40
+//   5. sign with t0 again -> -26 if the lock took effect, 0 if it did not
+//   6. sign with no token -> expect -26
+//   7. fresh Gatekeeper token t1 -> sign -> 0 (authentication still works)
+static int do_lockstate() {
+    sp<km41::IKeymasterDevice> device = km41::IKeymasterDevice::getService("default");
+    if (!device) {
+        STEP("no keymaster 4.1 device available (getService failed)");
+        return 2;
+    }
+    auto gatekeeper = gk10::IGatekeeper::getService("default");
+    if (!gatekeeper) {
+        STEP("no gatekeeper device available (getService failed)");
+        return 3;
+    }
+
+    const uint32_t kTestUid = 99997;
+    const char kPin[] = "lockstate-pin";
+    hidl_vec<uint8_t> empty;
+    hidl_vec<uint8_t> desired;
+    desired.setToExternal(reinterpret_cast<uint8_t*>(const_cast<char*>(kPin)), strlen(kPin));
+
+    STEP("deleteUser(%u) pre-clean ...", kTestUid);
+    gatekeeper->deleteUser(kTestUid, [](const gk10::GatekeeperResponse& r) {
+        STEP("  -> code=%d", static_cast<int>(r.code));
+    });
+
+    hidl_vec<uint8_t> passwordHandle;
+    STEP("enroll(uid=%u, pin='%s') ...", kTestUid, kPin);
+    auto rcEnroll = gatekeeper->enroll(
+        kTestUid, empty, empty, desired, [&](const gk10::GatekeeperResponse& r) {
+            STEP("  -> code=%d timeout=%u data_len=%zu", static_cast<int>(r.code), r.timeout,
+                 r.data.size());
+            if (r.code == gk10::GatekeeperStatusCode::STATUS_OK && r.data.size() != 0) {
+                passwordHandle = r.data;
+            }
+        });
+    STEP("enroll returned, transport=%s", rcEnroll.description().c_str());
+    if (passwordHandle.size() == 0) return 4;
+
+    auto verifyToken = [&](const char* label, km40::HardwareAuthToken* out) -> bool {
+        hidl_vec<uint8_t> blob;
+        STEP("%s: verify(uid=%u, challenge=0) ...", label, kTestUid);
+        auto rc = gatekeeper->verify(
+            kTestUid, 0, passwordHandle, desired, [&](const gk10::GatekeeperResponse& r) {
+                STEP("  -> code=%d timeout=%u data_len=%zu", static_cast<int>(r.code),
+                     r.timeout, r.data.size());
+                if (r.code == gk10::GatekeeperStatusCode::STATUS_OK) blob = r.data;
+            });
+        STEP("%s: verify returned, transport=%s", label, rc.description().c_str());
+        if (blob.size() != sizeof(HwAuthToken)) {
+            STEP("%s: unexpected token size %zu (expected %zu)", label, blob.size(),
+                 sizeof(HwAuthToken));
+            return false;
+        }
+        const HwAuthToken* raw = reinterpret_cast<const HwAuthToken*>(blob.data());
+        *out = km40::HardwareAuthToken{};
+        out->challenge = raw->challenge;
+        out->userId = raw->user_id;
+        out->authenticatorId = raw->authenticator_id;
+        out->authenticatorType = static_cast<km40::HardwareAuthenticatorType>(
+            be32_to_host(raw->authenticator_type));
+        out->timestamp = be64_to_host(raw->timestamp);
+        hidl_vec<uint8_t> mac;
+        mac.setToExternal(const_cast<uint8_t*>(raw->hmac), sizeof(raw->hmac));
+        out->mac = mac;
+        STEP("%s: token userId=%llu timestamp=%llu type=0x%x", label,
+             static_cast<unsigned long long>(out->userId),
+             static_cast<unsigned long long>(out->timestamp),
+             static_cast<uint32_t>(out->authenticatorType));
+        return true;
+    };
+
+    km40::HardwareAuthToken token0{};
+    if (!verifyToken("t0", &token0)) return 5;
+
+    km41::AuthorizationSetBuilder keyBuilder;
+    keyBuilder.RsaSigningKey(2048, 65537)
+        .Digest(km41::Digest::SHA_2_256)
+        .Padding(km41::PaddingMode::RSA_PKCS1_1_5_SIGN)
+        .Authorization(km40::TAG_USER_SECURE_ID, static_cast<uint64_t>(token0.userId))
+        .Authorization(km40::TAG_USER_AUTH_TYPE, km40::HardwareAuthenticatorType::PASSWORD)
+        .Authorization(km40::TAG_AUTH_TIMEOUT, 30u);
+    auto keyParams = keyBuilder.hidl_data();
+
+    hidl_vec<uint8_t> keyBlob;
+    STEP("generateKey(RSA, USER_SECURE_ID=%llu, AUTH_TIMEOUT=30) ...",
+         static_cast<unsigned long long>(token0.userId));
+    auto rcGen = device->generateKey(
+        keyParams, [&](km40::ErrorCode err, const hidl_vec<uint8_t>& blob,
+                       const km40::KeyCharacteristics&) {
+            STEP("  -> err=%d (%s) blob_len=%zu", static_cast<int32_t>(err), err_name(err),
+                 blob.size());
+            if (err == km40::ErrorCode::OK) keyBlob = blob;
+        });
+    STEP("generateKey returned, transport=%s", rcGen.description().c_str());
+    if (keyBlob.size() == 0) return 6;
+
+    int rcPre = sign_auth_bound(device, keyBlob, token0, "pre-lock with token t0");
+
+    km40::VerificationToken emptyVerificationToken{};
+    STEP("deviceLocked(passwordOnly=false, empty VerificationToken) ...");
+    auto rcLock = device->deviceLocked(false, emptyVerificationToken);
+    int32_t lockErr =
+        static_cast<int32_t>(rcLock.withDefault(km41::ErrorCode::UNKNOWN_ERROR));
+    STEP("deviceLocked -> %d (%s), transport=%s", lockErr,
+         err_name(static_cast<km40::ErrorCode>(lockErr)), rcLock.description().c_str());
+
+    int rcSame = sign_auth_bound(device, keyBlob, token0, "post-lock same token t0");
+    km40::HardwareAuthToken emptyAuthToken{};
+    int rcNone = sign_auth_bound(device, keyBlob, emptyAuthToken, "post-lock no token");
+
+    STEP("sleeping 1.2s so a fresh Gatekeeper token has a later timestamp ...");
+    usleep(1200 * 1000);
+    km40::HardwareAuthToken token1{};
+    bool haveToken1 = verifyToken("t1", &token1);
+    int rcFresh = haveToken1
+                      ? sign_auth_bound(device, keyBlob, token1, "post-lock fresh token t1")
+                      : -1;
+
+    auto del = device->deleteKey(keyBlob);
+    print_err("deleteKey", del);
+    STEP("deleteUser(%u) cleanup ...", kTestUid);
+    gatekeeper->deleteUser(kTestUid, [](const gk10::GatekeeperResponse& r) {
+        STEP("  -> code=%d", static_cast<int>(r.code));
+    });
+
+    STEP("SUMMARY deviceLocked=%d(%s) pre_lock_token=%d post_lock_same_token=%d "
+         "post_lock_no_token=%d post_lock_fresh_token=%d",
+         lockErr, err_name(static_cast<km40::ErrorCode>(lockErr)), rcPre, rcSame, rcNone,
+         rcFresh);
+    STEP("EXPECTED lock=-40 INVALID_TAG; post_lock_same_token=-26 means the lock was applied, "
+         "0 means it was not; post_lock_no_token=-26; post_lock_fresh_token=0");
+    return 0;
+}
+
 int main(int argc, char** argv) {
     setvbuf(stdout, nullptr, _IONBF, 0);
     g_start_ms = now_ms();
@@ -816,6 +1010,7 @@ int main(int argc, char** argv) {
     if (strcmp(mode, "unlock") == 0) return do_unlock();
     if (strcmp(mode, "bootkey") == 0) return do_bootkey();
     if (strcmp(mode, "gatekeeper") == 0) return do_gatekeeper();
+    if (strcmp(mode, "lockstate") == 0) return do_lockstate();
     if (strcmp(mode, "aes") == 0) return do_crypto_aes();
     if (strcmp(mode, "ec") == 0) return do_crypto_ec();
     if (strcmp(mode, "all") == 0) {
@@ -830,6 +1025,6 @@ int main(int argc, char** argv) {
         return rc;
     }
 
-    STEP("unknown mode '%s' (use list|connect|hmac|unlock|crypto|crypto-noauth|bootkey|gatekeeper|aes|ec|all)", mode);
+    STEP("unknown mode '%s' (use list|connect|hmac|unlock|crypto|crypto-noauth|bootkey|gatekeeper|lockstate|aes|ec|all)", mode);
     return 1;
 }
