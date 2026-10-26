@@ -113,6 +113,11 @@ ro.bluetooth.library_name=libbluetooth_qti.so
 ro.bluetooth.wipower=true
 ro.boot.hardware.sku=2021AP4653
 ro.boot.wificountrycode=CN
+# K1 runs 4.19 with the 5.10 BPF feature set; netd's BpfHandler and bpfloader
+# reject 25Q2+ userspace on a <5.4 kernel unless this override is present.
+# It must live in /system/build.prop: vendor_init cannot set default_prop
+# (denied by SELinux), so the same line in vendor.prop has no effect.
+ro.bpf.kver_override=5.10.239
 ro.charger.enable_suspend=1
 ro.com.google.clientidbase=android-lenovo
 ro.config.aod.support=1

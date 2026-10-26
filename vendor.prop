@@ -201,10 +201,6 @@ wifi.aware.interface=wifi-aware0
 # Keystore
 ro.hardware.keystore_desede=true
 
-# p11 diag: let netd/BpfHandler and bpfloader accept the 4.19 K1 kernel
-# (K1 carries the 5.10 BPF feature set; the 25Q2+ gate otherwise rejects it)
-ro.bpf.kver_override=5.10.239
-
 # p11 diag: persist logcat to /data so netd/netbpfload failures survive reboot loops
 persist.logd.logpersistd=logcatd
 persist.logd.logpersistd.size=64
