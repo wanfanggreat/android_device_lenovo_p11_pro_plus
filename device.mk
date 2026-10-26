@@ -382,7 +382,7 @@ PRODUCT_COPY_FILES += \
 # Power
 # Android 17 / target-level 7 要求 AIDL power 与 power.stats。
 PRODUCT_PACKAGES += \
-    android.hardware.power-service.example \
+    android.hardware.power-service-qti \
     android.hardware.power.stats-service.example
 
 # Product characteristics

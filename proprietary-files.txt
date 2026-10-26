@@ -1314,9 +1314,7 @@ vendor/lib64/libqti-iopd-client.so
 vendor/lib64/vendor.qti.hardware.iop@1.0.so
 vendor/lib64/vendor.qti.hardware.iop@2.0.so
 
-# Power
-vendor/bin/hw/android.hardware.power-service
-vendor/etc/init/android.hardware.power-service.rc
+# Power (stock AIDL V1 service removed for D7-2; QTI source HAL is in PRODUCT_PACKAGES)
 vendor/lib/hw/power.default.so
 vendor/lib64/hw/power.default.so
 
@@ -2091,7 +2089,6 @@ vendor/etc/speaker_cali/audio_cal.wav
 vendor/etc/ssg/ta_config.json
 vendor/etc/ssg/tz_whitelist.json
 vendor/etc/vintf/manifest/manifest.xml
-vendor/etc/vintf/manifest/power.xml
 vendor/etc/cacert_location.pem
 vendor/etc/excluded-input-devices.xml
 vendor/etc/ftm_test_config
