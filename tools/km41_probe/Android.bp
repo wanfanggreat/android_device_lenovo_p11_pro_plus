@@ -1,0 +1,24 @@
+// Standalone HIDL Keymaster 4.1 diagnostic probe (P2-A-1).
+// Not installed in any image by default; build with `m km41_probe` and push
+// the binary to /data/local/tmp. See km41_probe.cpp for usage.
+cc_binary {
+    name: "km41_probe",
+    srcs: ["km41_probe.cpp"],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+    ],
+    shared_libs: [
+        "android.hardware.gatekeeper@1.0",
+        "android.hardware.keymaster@4.0",
+        "android.hardware.keymaster@4.1",
+        "android.hidl.manager@1.0",
+        "libbase",
+        "libhidlbase",
+        "libkeymaster4support",
+        "libkeymaster4_1support",
+        "liblog",
+        "libutils",
+    ],
+}
