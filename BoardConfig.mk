@@ -129,6 +129,10 @@ BOARD_FLASH_BLOCK_SIZE := 262144 # (BOARD_KERNEL_PAGESIZE * 64)
 BOARD_BOOTIMAGE_PARTITION_SIZE := 100663296
 BOARD_DTBOIMG_PARTITION_SIZE := 25165824
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600
+# vendor_a occupies 1,734,688 sectors (888,160,256 bytes) in super.  Pin the
+# image to the same size so fastboot does not shrink vendor_a on flash; a
+# shorter image makes fastboot's logical resize path rewrite the partition.
+BOARD_VENDORIMAGE_PARTITION_SIZE := 888160256
 BOARD_USES_METADATA_PARTITION := true
 BOARD_SUPER_PARTITION_SIZE := 8589934592
 BOARD_SUPER_PARTITION_GROUPS := qti_dynamic_partitions

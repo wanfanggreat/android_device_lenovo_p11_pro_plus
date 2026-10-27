@@ -15,7 +15,8 @@
 #   tools/check-fbe-images.sh [PRODUCT_OUT]
 #
 # Environment overrides:
-#   PRODUCT_OUT, VENDOR_IMG, BOOT_IMG, RECOVERY_IMG, FSTAB_SRC
+#   PRODUCT_OUT, VENDOR_IMG, BOOT_IMG, RECOVERY_IMG, FSTAB_SRC,
+#   EXPECTED_VENDOR_SIZE (default 888160256; set 0 to skip the size check)
 set -uo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -27,6 +28,7 @@ VENDOR_IMG=${VENDOR_IMG:-$PRODUCT_OUT/vendor.img}
 BOOT_IMG=${BOOT_IMG:-$PRODUCT_OUT/boot.img}
 RECOVERY_IMG=${RECOVERY_IMG:-$PRODUCT_OUT/recovery.img}
 FSTAB_SRC=${FSTAB_SRC:-$DEVICE_DIR/rootdir/etc/fstab.qcom}
+EXPECTED_VENDOR_SIZE=${EXPECTED_VENDOR_SIZE:-888160256}
 
 S2I=$TREE/out/host/linux-x86/bin/simg2img
 UNPACK=$TREE/out/host/linux-x86/bin/unpack_bootimg
@@ -167,12 +169,20 @@ for f in "$FSTAB_SRC" "$VENDOR_IMG" "$BOOT_IMG" "$RECOVERY_IMG"; do
         fail "missing: $f"
     fi
 done
+if [ -f "$VENDOR_IMG" ] && [ "$EXPECTED_VENDOR_SIZE" -gt 0 ]; then
+    actual=$(stat -c%s "$VENDOR_IMG")
+    if [ "$actual" -eq "$EXPECTED_VENDOR_SIZE" ]; then
+        pass "vendor: image size $actual matches partition target"
+    else
+        fail "vendor: image size $actual != target $EXPECTED_VENDOR_SIZE; fastboot would resize vendor_a (rebuild with BOARD_VENDORIMAGE_PARTITION_SIZE)"
+    fi
+fi
 require_tool "$S2I" || true
 require_tool "$UNPACK" || true
 
 if [ "$FAIL" -ne 0 ]; then
     echo
-    echo "RESULT: FAIL (missing inputs or tools)"
+    echo "RESULT: FAIL (preflight: missing inputs/tools or vendor size mismatch)"
     exit 1
 fi
 
