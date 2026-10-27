@@ -180,7 +180,11 @@ vendor.display.disable_idle_time_video=1
 vendor.display.disable_offline_rotator=1
 vendor.display.disable_scaler=0
 vendor.display.enable_allow_idle_fallback=1
-vendor.display.enable_async_powermode=1
+# The async power path only updates the HWC state and depends on the QTI
+# DisplayConfig/IDisplayConfig callback to apply panel power. That service is
+# not available here, so the rm69380 command-mode panel stayed off after the
+# boot animation. Newer QTI display trees default this to 0 as well.
+vendor.display.enable_async_powermode=0
 vendor.display.enable_camera_smooth=1
 vendor.display.enable_optimize_refresh=1
 vendor.display.enable_posted_start_dyn=1

@@ -133,6 +133,11 @@ BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600
 # image to the same size so fastboot does not shrink vendor_a on flash; a
 # shorter image makes fastboot's logical resize path rewrite the partition.
 BOARD_VENDORIMAGE_PARTITION_SIZE := 888160256
+# The validated P2-C1 vendor image uses a compact inode table (3,360 inodes
+# for ~3,250 files).  Without this the default ~53k inodes consume about 12 MB
+# of data blocks and e2fsdroid runs out of space inside the 888,160,256-byte
+# partition.  Keep the small table; the content still fits with headroom.
+BOARD_VENDORIMAGE_EXTFS_INODE_COUNT := 3600
 BOARD_USES_METADATA_PARTITION := true
 BOARD_SUPER_PARTITION_SIZE := 8589934592
 BOARD_SUPER_PARTITION_GROUPS := qti_dynamic_partitions
