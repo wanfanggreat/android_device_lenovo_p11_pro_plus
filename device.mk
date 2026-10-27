@@ -424,6 +424,11 @@ PRODUCT_PACKAGES += \
     init.qti.qcv.sh \
     qca6234-service.sh
 
+# fstab.qcom is also installed into the boot ramdisk and recovery. Its
+# userdata line carries the validated wrappedkey_v0 FBE flags; the same file
+# is installed to /vendor/etc/fstab.qcom. Do not drop fileencryption,
+# metadata_encryption, keydirectory or the inlinecrypt mount option without
+# running tools/check-fbe-images.sh.
 PRODUCT_PACKAGES += \
     fstab.qcom \
     fstab.qcom_ramdisk \
