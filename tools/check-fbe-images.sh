@@ -30,6 +30,7 @@ FSTAB_SRC=${FSTAB_SRC:-$DEVICE_DIR/rootdir/etc/fstab.qcom}
 
 S2I=$TREE/out/host/linux-x86/bin/simg2img
 UNPACK=$TREE/out/host/linux-x86/bin/unpack_bootimg
+LZ4=${LZ4:-$(command -v lz4 2>/dev/null || printf '%s' "$TREE/out/host/linux-x86/bin/lz4")}
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 FAIL=0
@@ -85,7 +86,12 @@ extract_ramdisk_file() { # image, outfile, inner path
     cpio=$WORK/ramdisk.cpio
     case $(file -b "$ramdisk") in
         gzip*)  gzip -dc "$ramdisk" > "$cpio" ;;
-        LZ4*|lz4*) lz4 -d -c "$ramdisk" > "$cpio" ;;
+        LZ4*|lz4*)
+            if [ ! -x "$LZ4" ]; then
+                fail "$(basename "$img"): lz4 ramdisk but no lz4 tool"
+                return 1
+            fi
+            "$LZ4" -d -c "$ramdisk" > "$cpio" ;;
         *)      cp "$ramdisk" "$cpio" ;;
     esac || { fail "$(basename "$img"): cannot decompress ramdisk"; return 1; }
     if ! python3 -c "$CPIO_EXTRACT" "$cpio" "$out" "$inner"; then
