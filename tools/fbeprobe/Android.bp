@@ -1,0 +1,15 @@
+// Diagnostic app for the P2-C1 PIN cold-boot / DE-CE isolation test.
+// Not installed in any image; build with `m FbeProbe` and `adb install`.
+android_app {
+    name: "FbeProbe",
+    srcs: ["src/**/*.java"],
+    manifest: "AndroidManifest.xml",
+    sdk_version: "current",
+    certificate: "platform",
+    dex_preopt: {
+        enabled: false,
+    },
+    optimize: {
+        enabled: false,
+    },
+}
