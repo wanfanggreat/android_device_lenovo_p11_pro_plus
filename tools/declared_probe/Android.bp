@@ -1,0 +1,14 @@
+// Standalone AIDL declared-instance probe (P2-D0-S).
+// Not installed in any image: installable:false avoids staging/image inclusion.
+cc_binary {
+    name: "declared_probe",
+    srcs: ["declared_probe.cpp"],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+    ],
+    shared_libs: [
+        "libbinder_ndk",
+    ],
+    installable: false,
+}
