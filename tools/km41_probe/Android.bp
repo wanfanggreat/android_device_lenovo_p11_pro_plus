@@ -23,6 +23,31 @@ cc_binary {
     ],
 }
 
+// Exercises the running keystore2 service chain (IKeystoreService ->
+// IKeystoreSecurityLevel.generateKey / convertStorageKeyToEphemeral).
+// Build with `m keystore2_probe` and push the binary to /data/local/tmp.
+cc_binary {
+    name: "keystore2_probe",
+    defaults: ["keystore2_use_latest_aidl_ndk_shared"],
+    srcs: ["keystore2_probe.cpp"],
+    include_dirs: [
+        "hardware/interfaces/security/keymint/support/include",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+    ],
+    shared_libs: [
+        "android.hardware.security.keymint-V5-ndk",
+        "libbase",
+        "libbinder_ndk",
+        "libkeymint_support",
+        "liblog",
+    ],
+    installable: false,
+}
+
 // Exercises the real AOSP km_compat conversion path
 // (KeyMintDevice::createKeyMintDevice(TEE)) in an isolated process.
 // Build with `m kmcompat_probe` and push to /data/local/tmp.

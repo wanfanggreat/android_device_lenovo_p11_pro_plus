@@ -988,6 +988,103 @@ static int do_lockstate() {
     return 0;
 }
 
+static int do_storagekey(bool with_fbe_ice) {
+    sp<km40::IKeymasterDevice> device = get_device();
+    if (!device) {
+        STEP("no keymaster device available");
+        return 2;
+    }
+    if (!probe_hardware_info("storagekey", device)) return 2;
+
+    // Match Android 17 vold's generateV0WrappedStorageKey(): AesEncryptionKey(256)
+    // + TAG_STORAGE_KEY.  vold does not add TAG_NO_AUTH_REQUIRED.
+    km41::AuthorizationSetBuilder keyBuilder;
+    keyBuilder.AesEncryptionKey(256);
+    keyBuilder.Authorization(km41::TAG_STORAGE_KEY);
+
+    auto baseParams = keyBuilder.hidl_data();
+    std::vector<km40::KeyParameter> paramVec(baseParams.begin(), baseParams.end());
+    if (with_fbe_ice) {
+        // QTI/vendor extension used by vold on this device.  Test it only as a
+        // separate variant; the standard vold parameter set does not need it.
+        km40::KeyParameter p{};
+        p.tag = static_cast<km40::Tag>(km40::KM_TAG_FBE_ICE);
+        p.f.boolValue = true;
+        paramVec.push_back(p);
+    }
+    hidl_vec<km40::KeyParameter> params;
+    params.setToExternal(paramVec.data(), paramVec.size());
+
+    STEP("generateKey(AES-256, STORAGE_KEY%s, vold-style) ...",
+         with_fbe_ice ? " + KM_TAG_FBE_ICE" : "");
+    hidl_vec<uint8_t> keyBlob;
+    km40::KeyCharacteristics chars{};
+    auto rc = device->generateKey(
+        params, [&](km40::ErrorCode err, const hidl_vec<uint8_t>& blob,
+                    const km40::KeyCharacteristics& c) {
+            STEP("  -> err=%d (%s) blob_len=%zu auths=%zu", static_cast<int32_t>(err),
+                 err_name(err), blob.size(),
+                 c.hardwareEnforced.size() + c.softwareEnforced.size());
+            if (err == km40::ErrorCode::OK) {
+                keyBlob = blob;
+                chars = c;
+            }
+        });
+    STEP("generateKey returned, transport=%s", rc.description().c_str());
+    if (keyBlob.size() == 0) return 3;
+
+    bool storageTag = false;
+    auto hasStorageTag = [](const hidl_vec<km40::KeyParameter>& params) {
+        for (const auto& a : params) {
+            if (static_cast<int32_t>(a.tag) ==
+                static_cast<int32_t>(km41::Tag::STORAGE_KEY)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    storageTag = hasStorageTag(chars.hardwareEnforced) || hasStorageTag(chars.softwareEnforced);
+    STEP("characteristics: TAG_STORAGE_KEY=%d (hardware=%zu software=%zu)",
+         storageTag ? 1 : 0, chars.hardwareEnforced.size(), chars.softwareEnforced.size());
+
+    auto export_once = [&](const char* label, hidl_vec<uint8_t>* out) -> int {
+        *out = hidl_vec<uint8_t>();
+        auto r = device->exportKey(
+            km40::KeyFormat::RAW, keyBlob, hidl_vec<uint8_t>(), hidl_vec<uint8_t>(),
+            [&](km40::ErrorCode err, const hidl_vec<uint8_t>& blob) {
+                STEP("%s -> err=%d (%s) len=%zu", label, static_cast<int32_t>(err),
+                     err_name(err), blob.size());
+                if (err == km40::ErrorCode::OK) *out = blob;
+            });
+        STEP("%s returned, transport=%s", label, r.description().c_str());
+        return out->size() == 0 ? 4 : 0;
+    };
+
+    hidl_vec<uint8_t> eph1;
+    hidl_vec<uint8_t> eph2;
+    int exp1 = export_once("exportKey(RAW) #1", &eph1);
+    int exp2 = export_once("exportKey(RAW) #2", &eph2);
+    if (eph1.size() != 0 && eph2.size() != 0) {
+        bool same = eph1.size() == eph2.size() &&
+                    memcmp(eph1.data(), eph2.data(), eph1.size()) == 0;
+        STEP("export repeat: same=%d len1=%zu len2=%zu", same ? 1 : 0, eph1.size(),
+             eph2.size());
+    }
+
+    STEP("deleteKey(storage test key) ...");
+    auto del = device->deleteKey(keyBlob);
+    print_err("deleteKey", del);
+
+    if (eph1.size() != 0) memset(eph1.data(), 0, eph1.size());
+    if (eph2.size() != 0) memset(eph2.data(), 0, eph2.size());
+    if (keyBlob.size() != 0) memset(keyBlob.data(), 0, keyBlob.size());
+
+    return (exp1 == 0 && exp2 == 0 &&
+            static_cast<km40::ErrorCode>(del) == km40::ErrorCode::OK)
+                   ? 0
+                   : 5;
+}
+
 int main(int argc, char** argv) {
     setvbuf(stdout, nullptr, _IONBF, 0);
     g_start_ms = now_ms();
@@ -1013,6 +1110,8 @@ int main(int argc, char** argv) {
     if (strcmp(mode, "lockstate") == 0) return do_lockstate();
     if (strcmp(mode, "aes") == 0) return do_crypto_aes();
     if (strcmp(mode, "ec") == 0) return do_crypto_ec();
+    if (strcmp(mode, "storagekey") == 0) return do_storagekey(false);
+    if (strcmp(mode, "storagekey-fbe") == 0) return do_storagekey(true);
     if (strcmp(mode, "all") == 0) {
         int rc = do_list();
         if (rc != 0) return rc;
@@ -1025,6 +1124,6 @@ int main(int argc, char** argv) {
         return rc;
     }
 
-    STEP("unknown mode '%s' (use list|connect|hmac|unlock|crypto|crypto-noauth|bootkey|gatekeeper|lockstate|aes|ec|all)", mode);
+    STEP("unknown mode '%s' (use list|connect|hmac|unlock|crypto|crypto-noauth|bootkey|gatekeeper|lockstate|aes|ec|storagekey|storagekey-fbe|all)", mode);
     return 1;
 }

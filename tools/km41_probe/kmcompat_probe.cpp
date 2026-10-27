@@ -30,6 +30,8 @@
 #include <vector>
 
 #include <android/hardware/gatekeeper/1.0/IGatekeeper.h>
+#include <android/binder_manager.h>
+#include <aidl/android/security/compat/IKeystoreCompatService.h>
 #include <hidl/ServiceManagement.h>
 #include <android/hidl/manager/1.2/IServiceManager.h>
 #include <keymint_support/keymint_tags.h>
@@ -49,6 +51,7 @@ using ::aidl::android::hardware::security::sharedsecret::SharedSecretParameters;
 using ::ndk::ScopedAStatus;
 
 namespace KMV1 = ::aidl::android::hardware::security::keymint;
+namespace compat = ::aidl::android::security::compat;
 namespace gk10 = ::android::hardware::gatekeeper::V1_0;
 
 static int64_t g_start_ms;
@@ -477,6 +480,119 @@ static int do_manager() {
     return 0;
 }
 
+static int storagekey_on_device(const std::shared_ptr<KMV1::IKeyMintDevice>& device,
+                                bool with_fbe_ice) {
+    // Match Android 17 vold's generateV0WrappedStorageKey(): AesEncryptionKey(256)
+    // + TAG_STORAGE_KEY.  vold does not add TAG_NO_AUTH_REQUIRED.
+    std::vector<KMV1::KeyParameter> keyParams = {
+        KMV1::makeKeyParameter(KMV1::TAG_PURPOSE, KeyPurpose::ENCRYPT),
+        KMV1::makeKeyParameter(KMV1::TAG_PURPOSE, KeyPurpose::DECRYPT),
+        KMV1::makeKeyParameter(KMV1::TAG_ALGORITHM, Algorithm::AES),
+        KMV1::makeKeyParameter(KMV1::TAG_KEY_SIZE, 256),
+        KMV1::makeKeyParameter(KMV1::TAG_STORAGE_KEY),
+    };
+    if (with_fbe_ice) {
+        // Same vendor tag that vold writes (KM_TAG_FBE_ICE in km_compat.cpp).
+        KMV1::KeyParameter p;
+        p.tag = static_cast<KMV1::Tag>((7 << 28) | 16201);
+        p.value = KMV1::KeyParameterValue::make<KMV1::KeyParameterValue::boolValue>(true);
+        keyParams.push_back(p);
+    }
+
+    KMV1::KeyCreationResult creation;
+    STEP("generateKey(AES-256, STORAGE_KEY%s, vold-style) ...",
+         with_fbe_ice ? " + KM_TAG_FBE_ICE" : "");
+    auto status = device->generateKey(keyParams, std::nullopt, &creation);
+    print_status("generateKey", status);
+    STEP("  keyBlob=%zu characteristics=%zu chains=%zu", creation.keyBlob.size(),
+         creation.keyCharacteristics.size(), creation.certificateChain.size());
+    if (!status.isOk() || creation.keyBlob.empty()) return 5;
+
+    bool storageTag = false;
+    for (const auto& c : creation.keyCharacteristics) {
+        STEP("  characteristics: securityLevel=%s authorizations=%zu",
+             sec_name(c.securityLevel), c.authorizations.size());
+        for (const auto& a : c.authorizations) {
+            if (a.tag == KMV1::Tag::STORAGE_KEY) storageTag = true;
+        }
+    }
+    STEP("  TAG_STORAGE_KEY=%d", storageTag ? 1 : 0);
+
+    std::vector<uint8_t> eph1;
+    std::vector<uint8_t> eph2;
+    STEP("convertStorageKeyToEphemeral #1 ...");
+    status = device->convertStorageKeyToEphemeral(creation.keyBlob, &eph1);
+    print_status("convertStorageKeyToEphemeral #1", status);
+    size_t len1 = eph1.size();
+    STEP("  eph_len=%zu", len1);
+    STEP("convertStorageKeyToEphemeral #2 ...");
+    status = device->convertStorageKeyToEphemeral(creation.keyBlob, &eph2);
+    print_status("convertStorageKeyToEphemeral #2", status);
+    size_t len2 = eph2.size();
+    STEP("  eph_len=%zu", len2);
+    if (len1 != 0 && len2 != 0) {
+        bool same = len1 == len2 && memcmp(eph1.data(), eph2.data(), len1) == 0;
+        STEP("  convert repeat: same=%d len1=%zu len2=%zu", same ? 1 : 0, len1, len2);
+    }
+
+    STEP("deleteKey(storage test key) ...");
+    status = device->deleteKey(creation.keyBlob);
+    print_status("deleteKey", status);
+
+    if (!creation.keyBlob.empty()) memset(creation.keyBlob.data(), 0, creation.keyBlob.size());
+    if (!eph1.empty()) memset(eph1.data(), 0, eph1.size());
+    if (!eph2.empty()) memset(eph2.data(), 0, eph2.size());
+
+    return (len1 != 0 && len2 != 0) ? 0 : 6;
+}
+
+static int do_storagekey(bool with_fbe_ice) {
+    auto device = create_tee_device();
+    if (!device) return 2;
+    KMV1::KeyMintHardwareInfo info;
+    if (!get_info(device, &info)) return 3;
+    if (info.securityLevel != SecurityLevel::TRUSTED_ENVIRONMENT) {
+        STEP("refusing to continue: wrapper reports %s, not TEE",
+             sec_name(info.securityLevel));
+        return 4;
+    }
+    return storagekey_on_device(device, with_fbe_ice);
+}
+
+static int do_storagekey_service(bool with_fbe_ice) {
+    // This is the *real* compat service used by keystore2's connect_keymint()
+    // when no AIDL IKeyMintDevice/default is declared.  Unlike the in-process
+    // createKeyMintDevice() path, the HAL lookup runs in the keystore2 domain,
+    // so it may be reachable from shell even when shell cannot find the
+    // hal_keymaster_hwservice directly.
+    ndk::SpAIBinder binder(AServiceManager_checkService("android.security.compat"));
+    if (binder.get() == nullptr) {
+        STEP("android.security.compat service not found");
+        return 2;
+    }
+    auto compatService = compat::IKeystoreCompatService::fromBinder(binder);
+    if (!compatService) {
+        STEP("IKeystoreCompatService::fromBinder failed");
+        return 2;
+    }
+    STEP("connected to android.security.compat");
+    std::shared_ptr<KMV1::IKeyMintDevice> device;
+    STEP("IKeystoreCompatService::getKeyMintDevice(%s) ...",
+         sec_name(SecurityLevel::TRUSTED_ENVIRONMENT));
+    auto status = compatService->getKeyMintDevice(SecurityLevel::TRUSTED_ENVIRONMENT, &device);
+    print_status("getKeyMintDevice", status);
+    STEP("  device=%s", device ? "non-null" : "NULL");
+    if (!status.isOk() || !device) return 2;
+    KMV1::KeyMintHardwareInfo info;
+    if (!get_info(device, &info)) return 3;
+    if (info.securityLevel != SecurityLevel::TRUSTED_ENVIRONMENT) {
+        STEP("refusing to continue: compat device reports %s, not TEE",
+             sec_name(info.securityLevel));
+        return 4;
+    }
+    return storagekey_on_device(device, with_fbe_ice);
+}
+
 int main(int argc, char** argv) {
     setvbuf(stdout, nullptr, _IONBF, 0);
     g_start_ms = now_ms();
@@ -490,7 +606,11 @@ int main(int argc, char** argv) {
     if (strcmp(mode, "hmac") == 0) return do_hmac();
     if (strcmp(mode, "bootkey") == 0) return do_bootkey();
     if (strcmp(mode, "gatekeeper") == 0) return do_gatekeeper();
+    if (strcmp(mode, "storagekey") == 0) return do_storagekey(false);
+    if (strcmp(mode, "storagekey-fbe") == 0) return do_storagekey(true);
+    if (strcmp(mode, "storagekey-service") == 0) return do_storagekey_service(false);
+    if (strcmp(mode, "storagekey-service-fbe") == 0) return do_storagekey_service(true);
 
-    STEP("unknown mode '%s' (use manager|info|basic|hmac|bootkey|gatekeeper)", mode);
+    STEP("unknown mode '%s' (use manager|info|basic|hmac|bootkey|gatekeeper|storagekey|storagekey-fbe|storagekey-service|storagekey-service-fbe)", mode);
     return 1;
 }
