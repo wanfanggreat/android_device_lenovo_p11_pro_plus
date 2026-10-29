@@ -289,13 +289,18 @@ PRODUCT_PACKAGES += \
 # Media
 # libjsoncpp.vendor：vendor.qti.media.c2@1.0-service 经 libqcodec2_platform.so
 # 依赖 libjsoncpp.so，缺库时 Codec2 HAL 无法启动；ssgtzd 也依赖它。
+# vendor.dolby.media.c2-service：用本树源码重建的 Dolby Codec2 入口，替代
+# 原厂预编译二进制（后者按 Android 13 的 264 B 内联分配，与本树 288 B 的
+# utils::ComponentStore 不兼容）。安装路径仍为
+# /vendor/bin/hw/vendor.dolby.media.c2@1.0-service。
 PRODUCT_PACKAGES += \
     libavservices_minijail \
     libavservices_minijail.vendor \
     libavservices_minijail_vendor \
     libcodec2_hidl@1.0.vendor \
     libcodec2_vndk.vendor \
-    libjsoncpp.vendor
+    libjsoncpp.vendor \
+    vendor.dolby.media.c2-service
 
 PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_google_audio.xml \

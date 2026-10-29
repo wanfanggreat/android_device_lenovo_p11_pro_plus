@@ -1201,7 +1201,14 @@ lib64/libdolbyottcontrol.so
 lib64/vendor.dolby.hardware.dms@2.0.so
 lib/libdolbyottcontrol.so
 vendor/bin/hw/vendor.dolby.hardware.dms@2.0-service
-vendor/bin/hw/vendor.dolby.media.c2@1.0-service
+# vendor/bin/hw/vendor.dolby.media.c2@1.0-service
+#   ↑ 不打包原厂预编译入口。它按 Android 13 头文件内联 new
+#     utils::ComponentStore（0x108 = 264 B），而本树该类为 0x120（288 B），
+#     RefBase 位于 +0x110，对象尾部落在分配之外 → 每次 sp<> 引用计数都在
+#     mRefs（+0x118）上读越界，c2.dolby.* 创建即崩（E3-P1 根因）。
+#     由 device/lenovo/p11_pro_plus/dolby-c2 用本树源码重建同路径二进制，
+#     经 PRODUCT_PACKAGES 安装；V1_0 接口、default1 实例名、rc、VINTF 与
+#     mediacodec_exec 标签保持不变。原厂 libcodec2_store_dolby.so 仍保留。
 vendor/etc/dolby/dax-default.xml
 vendor/etc/init/vendor.dolby.hardware.dms@2.0-service.rc
 vendor/etc/init/vendor.dolby.media.c2@1.0-service.rc
