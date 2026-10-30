@@ -1,0 +1,12 @@
+// Minimal DRM/KMS probe for the physical-display black-screen investigation.
+// Not installed in any image; build with `m drm_probe`, push to
+// /data/local/tmp, stop surfaceflinger, then run as root.
+cc_binary {
+    name: "drm_probe",
+    srcs: ["drm_probe.cpp"],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+    ],
+}

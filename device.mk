@@ -408,6 +408,19 @@ PRODUCT_PACKAGES += \
     librmnetctl \
     libxml2
 
+# Time zone
+# F5: this is a Wi-Fi-only SKU with no modem/RIL, so the telephony time zone
+# channel can never work. Install the AOSP offline location time zone provider
+# and enable it in the framework overlay, otherwise both detection channels are
+# unsupported and Settings keeps automatic time zone disabled.
+PRODUCT_PACKAGES += \
+    OfflineLocationTimeZoneProviderService
+
+# The provider is a priv-app without UI, so its dangerous location permissions
+# must be pre-granted; privapp-permissions alone does not cover them.
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/default-permissions/default-permissions-geotz.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/default-permissions/default-permissions-geotz.xml
+
 # Rootdir
 PRODUCT_PACKAGES += \
     init.class_main.sh \
@@ -522,6 +535,13 @@ PRODUCT_PACKAGES += \
     libwifi-hal-qcom \
     wpa_supplicant \
     wpa_supplicant.conf
+
+# F3: com.android.wifi is a mainline APEX, so its SoftAP SAE flag cannot be
+# changed with DEVICE_PACKAGE_OVERLAYS. Ship a static RRO on /system_ext
+# instead; WifiCustomization allows policy "system" and IdmapManager treats
+# system_ext as the system partition.
+PRODUCT_PACKAGES += \
+    WifiSaeOverlay
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/wifi/p2p_supplicant_overlay.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/p2p_supplicant_overlay.conf \

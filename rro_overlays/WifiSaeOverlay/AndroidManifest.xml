@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.android.wifi.resources.sae">
+
+    <application android:hasCode="false" />
+
+    <!--
+      This device has no /system_ext/overlay/config/config.xml, so OverlayConfig
+      takes the legacy path and turns a static overlay into an immutable,
+      default-enabled one; no config file is needed.
+    -->
+    <overlay
+        android:isStatic="true"
+        android:priority="0"
+        android:targetPackage="com.android.wifi.resources"
+        android:targetName="WifiCustomization" />
+
+</manifest>

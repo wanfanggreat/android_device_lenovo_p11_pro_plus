@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+
+    <!--
+      F3 minimal fix. Read by ApConfigUtil.isWpa3SaeSupported() through
+      WifiContext.createPackageContext("com.android.wifi.resources"), and it
+      gates SOFTAP_FEATURE_WPA3_SAE in updateCapabilityFromResource(). Without
+      the bit, SoftApManager rejects WPA3-SAE / WPA3-SAE-transition in
+      checkSupportAllConfiguration() before hostapd is ever started.
+
+      Deliberately not changed here (separate root causes, one change per
+      flash): config_wifi5ghzSupport, config_wifiSoftapIeee80211axSupported,
+      config_wifi_softap_acs_supported, config_wifiSoftapOweSupported.
+    -->
+    <bool name="config_wifi_softap_sae_supported">true</bool>
+
+</resources>

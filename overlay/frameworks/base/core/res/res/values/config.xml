@@ -127,4 +127,13 @@
       默认 0）；这个 bool 只负责允许“非交互状态下”也走长按逻辑。
     -->
     <bool name="config_supportLongPressPowerWhenNonInteractive">true</bool>
+
+    <!--
+      F5 注意：自动时区的两个键不能加在这里。本构建树里
+      DEVICE_PACKAGE_OVERLAYS 没有进入 soong 图（build.ninja 中 0 引用），
+      整个 overlay 目录对 framework-res 无效；p2d2 基线镜像的
+      framework-res 也证实这些键从未生效。F5 改为直接给 AOSP
+      frameworks/base/core/res/res/values/config.xml 打补丁，见
+      patches/0020-geotz-enable-primary-provider.patch（框架值）+ patches/0019-geotz-provider-package.patch（APK）。
+    -->
 </resources>

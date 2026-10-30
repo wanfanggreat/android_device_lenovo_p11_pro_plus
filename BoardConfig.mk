@@ -138,6 +138,22 @@ BOARD_VENDORIMAGE_PARTITION_SIZE := 888160256
 # of data blocks and e2fsdroid runs out of space inside the 888,160,256-byte
 # partition.  Keep the small table; the content still fits with headroom.
 BOARD_VENDORIMAGE_EXTFS_INODE_COUNT := 3600
+# system_a occupies 2,129,728 sectors (1,089,921,024 bytes) in super.  Pin the
+# image to the same size for the same reason as vendor: an unpinned image is
+# content-sized and lands ~2 MB larger, which makes fastbootd enter the logical
+# resize path and rewrite super metadata.
+BOARD_SYSTEMIMAGE_PARTITION_SIZE := 1089921024
+# Same inode-table trap as vendor: once the image size is pinned, mke2fs sizes
+# the inode table from the partition size (~66k inodes, ~17 MB of blocks) and
+# e2fsdroid runs out of space.  The device system image uses 3,600 inodes for
+# its 2,927 files; keep that table.
+BOARD_SYSTEMIMAGE_EXTFS_INODE_COUNT := 3600
+# system_ext_a occupies 1,028,088 sectors (526,381,056 bytes) in super.  Pin it
+# for the same reason: the F3 RRO has to land in an image that is exactly as
+# long as the existing logical partition, otherwise fastbootd rewrites the
+# super metadata on flash.
+BOARD_SYSTEM_EXTIMAGE_PARTITION_SIZE := 526381056
+BOARD_SYSTEM_EXTIMAGE_EXTFS_INODE_COUNT := 3904
 BOARD_USES_METADATA_PARTITION := true
 BOARD_SUPER_PARTITION_SIZE := 8589934592
 BOARD_SUPER_PARTITION_GROUPS := qti_dynamic_partitions
@@ -191,6 +207,12 @@ BUILD_BROKEN_VENDOR_PROPERTY_NAMESPACE := true
 # Verified Boot
 BOARD_AVB_ENABLE := true
 BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 3
+# vbmeta is built with --flags 3, so neither the hashtree nor verification is
+# checked at boot.  avbtool still reserves ~8.6 MB for FEC when sizing the
+# system filesystem, which left the pinned 1,089,921,024-byte system_a with no
+# room for new files.  Skip FEC for system so that space is usable; the footer
+# itself is still added and nothing about verification changes.
+BOARD_AVB_SYSTEM_ADD_HASHTREE_FOOTER_ARGS := --do_not_generate_fec
 BOARD_AVB_RECOVERY_KEY_PATH := external/avb/test/data/testkey_rsa4096.pem
 BOARD_AVB_RECOVERY_ALGORITHM := SHA256_RSA4096
 BOARD_AVB_RECOVERY_ROLLBACK_INDEX := 1

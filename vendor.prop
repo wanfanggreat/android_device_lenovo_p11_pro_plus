@@ -1,3 +1,15 @@
+# --- P3-E7 F4: LHDCv5 A2DP source codec ---
+# The QTI primary audio HAL (audio_extn/a2dp.c) has no LHDC A2DP encoder and the
+# device audio policy A2DP encodedFormats whitelist has no AUDIO_FORMAT_LHDC, so
+# negotiating LHDC makes AudioPolicyManager reject the A2DP device.
+#
+# Requesting LHDC priority -1 here is NOT sufficient on this platform:
+# bluetooth_prop has a neverallow that only lets coredomain / bluetooth /
+# hal_bluetooth_server set it, so vendor_init drops the value at boot (observed
+# as "avc: denied { set } ... scontext=u:r:vendor_init:s0"). The actual fix is
+# in the Bluetooth module default (patches/0016); this line is kept because it
+# is the upstream knob and stays consistent if the policy ever allows it.
+bluetooth.a2dp.source.lhdcv5_priority.config=-1
 audio.deep_buffer.media=true
 dalvik.vm.heapgrowthlimit=512m
 dalvik.vm.heapmaxfree=8m

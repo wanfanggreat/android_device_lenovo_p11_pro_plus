@@ -1,0 +1,20 @@
+//
+// Copyright (C) 2026 The LineageOS Project
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// F3 (WPA3 SoftAP): enable the SoftAP WPA3-SAE capability of the mainline
+// com.android.wifi APEX.
+//
+// The target package com.android.wifi.resources lives inside the
+// com.android.wifi APEX. Its only overlayable, "WifiCustomization", declares
+// policy odm|product|system|vendor, and IdmapManager treats /system_ext as
+// SYSTEM_PARTITION, so a preinstalled RRO here is allowed to overlay it.
+// Do not use DEVICE_PACKAGE_OVERLAYS for this: that merges into the APEX
+// payload at build time and would require rebuilding the mainline module.
+runtime_resource_overlay {
+    name: "WifiSaeOverlay",
+    system_ext_specific: true,
+    sdk_version: "current",
+}
