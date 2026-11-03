@@ -5807,6 +5807,12 @@ case "$target" in
 	setprop vendor.dcvs.prop 1
     echo N > /sys/module/lpm_levels/parameters/sleep_disabled
     configure_memory_parameters
+    # P3-E15 B1: raise the kswapd gap on SM8250. configure_memory_parameters
+    # deliberately leaves WSF at 1 because this target relies on EFK, which
+    # yields a Normal low watermark of only ~56 MB. 120 matches the value the
+    # stock script uses for sdm845 and gives ~110 MB. Single-variable
+    # candidate: delete the echo line below to restore the E11 behaviour.
+    echo 120 > /proc/sys/vm/watermark_scale_factor
     ;;
 esac
 
