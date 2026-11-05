@@ -158,10 +158,23 @@ PRODUCT_PACKAGES += \
     vendor.qti.hardware.btconfigstore@2.0.vendor
 
 # Boot control
+# Android 17 BootControlClient only accepts the AIDL IBootControl or HIDL
+# 1.2+; the HIDL 1.1 service shipped until P3-E19 is dropped by every client
+# (fastbootd -> empty current-slot/slot-count 0, vold -> no
+# markBootSuccessful), even though the service itself starts.
+# Use the LineageOS 24 QTI AIDL service instead. It is declared through its
+# own VINTF fragment for both /vendor and the recovery ramdisk, and
+# .recovery is started explicitly from init.recovery.qcom.rc because
+# recovery's init never runs `class early_hal`.
+# GPT helper: libgptutils.qti (upstream). Its A/B partition list matches the
+# list baked into the stock ZUI libboot_control_qti.so (sbl1/aboot/mdtp/
+# mdtpsecapp/recovery/...), and it carries the O_DSYNC + fsync fix that the
+# older device copy libgptutils.lenovo_kona lacks. markBootSuccessful only
+# sets the boot-successful bit on existing _a/_b GPT entries; the UFS boot
+# LUN switch lives in setActiveBootSlot, which stays an explicit-only path.
 PRODUCT_PACKAGES += \
-    android.hardware.boot@1.1-impl-qti \
-    android.hardware.boot@1.1-impl-qti.recovery \
-    android.hardware.boot@1.1-service
+    android.hardware.boot-service.qti \
+    android.hardware.boot-service.qti.recovery
 
 PRODUCT_PACKAGES_DEBUG += \
     bootctl

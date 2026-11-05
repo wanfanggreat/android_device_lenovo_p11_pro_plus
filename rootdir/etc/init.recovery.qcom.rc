@@ -36,3 +36,11 @@ on property:ro.boot.usbcontroller=*
 on fs
     wait /dev/block/platform/soc/${ro.boot.bootdevice}
     symlink /dev/block/platform/soc/${ro.boot.bootdevice} /dev/block/bootdevice
+
+# Android 17 clients only accept the AIDL IBootControl. recovery's init only
+# starts the `default` and `hal` classes, while the QTI boot control HAL rc
+# uses `class early_hal`, so fastbootd would otherwise find a declared but
+# never-started service and block forever in waitForService(). Start it
+# explicitly; it needs /dev/block/bootdevice from the `on fs` block above.
+on boot
+    start vendor.boot-qti
