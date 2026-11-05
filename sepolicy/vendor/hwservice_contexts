@@ -2,3 +2,10 @@
 com.fingerprints.extension::IFingerprintNavigation                                      u:object_r:hal_fingerprint_hwservice:s0
 com.fingerprints.extension::IFingerprintSensorTest                                      u:object_r:hal_fingerprint_hwservice:s0
 vendor.goodix.hardware.biometrics.fingerprint::IGoodixFingerprintDaemon                 u:object_r:hal_fingerprint_hwservice:s0
+# The Goodix 2.1 HAL registers both interfaces (manifest.xml declares both).
+# Without this context the Ext registration falls back to
+# default_android_hwservice and hal_fingerprint_default is denied "add"
+# (E12 logcat: avc denied { add } ... IGoodixFingerprintDaemonExt).  Core
+# fingerprint works through IGoodixFingerprintDaemon, so this is a separate,
+# non-blocking extension registration.
+vendor.goodix.hardware.biometrics.fingerprint::IGoodixFingerprintDaemonExt              u:object_r:hal_fingerprint_hwservice:s0
